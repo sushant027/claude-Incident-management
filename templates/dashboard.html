@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Incident Management</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard" class="navbar-brand">Incident Management</a>
+        <ul class="navbar-menu">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/incidents-list">Incidents</a></li>
+            <li><a href="/search">Search</a></li>
+        </ul>
+        <div class="navbar-user">
+            <span>{{ user.name }} ({{ user.role }})</span>
+            <button onclick="logout()" class="btn btn-small btn-secondary">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Dashboard</h1>
+
+        <div id="stats-grid" class="stats-grid">
+            <!-- Stats will be loaded here -->
+        </div>
+
+        <div class="card">
+            <div class="card-header">Recent Incidents</div>
+            <table class="table" id="recent-incidents">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Service</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="flex gap-1">
+            <a href="/incidents-list" class="btn btn-primary">View All Incidents</a>
+            <button onclick="showCreateIncident()" class="btn btn-success">Create New Incident</button>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                // Load incidents
+                const response = await fetch('/incidents?page_size=10');
+                const data = await response.json();
+                
+                // Calculate stats
+                const stats = {
+                    total: data.total,
+                    open: 0,
+                    in_progress: 0,
+                    resolved: 0
+                };
+                
+                data.incidents.forEach(inc => {
+                    if (inc.status === 'OPEN') stats.open++;
+                    else if (inc.status === 'IN_PROGRESS') stats.in_progress++;
+                    else if (inc.status === 'RESOLVED') stats.resolved++;
+                });
+                
+                // Display stats
+                document.getElementById('stats-grid').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.total}</div>
+                        <div class="stat-label">Total Incidents</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-value">${stats.open}</div>
+                        <div class="stat-label">Open</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value">${stats.in_progress}</div>
+                        <div class="stat-label">In Progress</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value">${stats.resolved}</div>
+                        <div class="stat-label">Resolved</div>
+                    </div>
+                `;
+                
+                // Display recent incidents
+                const tbody = document.querySelector('#recent-incidents tbody');
+                tbody.innerHTML = data.incidents.map(inc => `
+                    <tr>
+                        <td><a href="/incidents-detail/${inc.id}">#${inc.id}</a></td>
+                        <td>${inc.title}</td>
+                        <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
+                        <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${inc.status}</span></td>
+                        <td>${inc.service_name}</td>
+                        <td>${new Date(inc.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        function showCreateIncident() {
+            window.location.href = '/incidents-list';
+        }
+        
+        async function logout() {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+        
+        loadDashboard();
+    </script>
+</body>
+</html>

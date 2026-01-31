@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incidents - Incident Management</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard" class="navbar-brand">Incident Management</a>
+        <ul class="navbar-menu">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/incidents-list">Incidents</a></li>
+            <li><a href="/search">Search</a></li>
+        </ul>
+        <div class="navbar-user">
+            <span>{{ user.name }} ({{ user.role }})</span>
+            <button onclick="logout()" class="btn btn-small btn-secondary">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container-wide">
+        <div class="flex-between mb-2">
+            <h1>Incidents</h1>
+            <button onclick="showCreateForm()" class="btn btn-success">Create New Incident</button>
+        </div>
+
+        <!-- Create Form (hidden by default) -->
+        <div id="create-form" class="card hidden">
+            <div class="card-header">Create New Incident</div>
+            <form id="incident-form">
+                <div class="form-group">
+                    <label class="form-label">Title *</label>
+                    <input type="text" name="title" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description *</label>
+                    <textarea name="description" class="form-textarea" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Exception Text</label>
+                    <textarea name="exception_text" class="form-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bank *</label>
+                    <select name="bank_id" class="form-select" required id="bank-select"></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Service Name *</label>
+                    <input type="text" name="service_name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Severity *</label>
+                    <select name="severity" class="form-select" required>
+                        <option value="P1">P1 - Critical</option>
+                        <option value="P2">P2 - High</option>
+                        <option value="P3" selected>P3 - Medium</option>
+                        <option value="P4">P4 - Low</option>
+                    </select>
+                </div>
+                <div class="flex gap-1">
+                    <button type="submit" class="btn btn-primary">Create Incident</button>
+                    <button type="button" onclick="hideCreateForm()" class="btn btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Incidents Table -->
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Service</th>
+                        <th>Bank</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="incidents-tbody"></tbody>
+            </table>
+        </div>
+
+        <div id="pagination" class="flex-between mt-2"></div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        
+        async function loadBanks() {
+            const response = await fetch('/banks');
+            const banks = await response.json();
+            const select = document.getElementById('bank-select');
+            select.innerHTML = banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+        }
+        
+        async function loadIncidents(page = 1) {
+            const response = await fetch(`/incidents?page=${page}&page_size=20`);
+            const data = await response.json();
+            
+            const tbody = document.getElementById('incidents-tbody');
+            tbody.innerHTML = data.incidents.map(inc => `
+                <tr onclick="window.location.href='/incidents-detail/${inc.id}'" style="cursor: pointer;">
+                    <td>#${inc.id}</td>
+                    <td>${inc.title}</td>
+                    <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
+                    <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${inc.status.replace('_', ' ')}</span></td>
+                    <td>${inc.service_name}</td>
+                    <td>${inc.bank_name || 'N/A'}</td>
+                    <td>${new Date(inc.created_at).toLocaleString()}</td>
+                </tr>
+            `).join('');
+            
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(data.total / 20);
+            pagination.innerHTML = `
+                <div>Showing ${data.incidents.length} of ${data.total} incidents</div>
+                <div class="flex gap-1">
+                    ${page > 1 ? `<button onclick="loadIncidents(${page - 1})" class="btn btn-small btn-secondary">Previous</button>` : ''}
+                    ${page < totalPages ? `<button onclick="loadIncidents(${page + 1})" class="btn btn-small btn-secondary">Next</button>` : ''}
+                </div>
+            `;
+        }
+        
+        function showCreateForm() {
+            document.getElementById('create-form').classList.remove('hidden');
+        }
+        
+        function hideCreateForm() {
+            document.getElementById('create-form').classList.add('hidden');
+            document.getElementById('incident-form').reset();
+        }
+        
+        document.getElementById('incident-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                exception_text: formData.get('exception_text') || null,
+                bank_id: parseInt(formData.get('bank_id')),
+                service_name: formData.get('service_name'),
+                severity: formData.get('severity')
+            };
+            
+            try {
+                const response = await fetch('/incidents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    hideCreateForm();
+                    loadIncidents(currentPage);
+                    alert('Incident created successfully');
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to create incident'));
+                }
+            } catch (error) {
+                alert('Network error');
+            }
+        });
+        
+        async function logout() {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+        
+        loadBanks();
+        loadIncidents();
+    </script>
+</body>
+</html>

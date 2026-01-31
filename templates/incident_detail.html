@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Detail - Incident Management</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard" class="navbar-brand">Incident Management</a>
+        <ul class="navbar-menu">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/incidents-list">Incidents</a></li>
+            <li><a href="/search">Search</a></li>
+        </ul>
+        <div class="navbar-user">
+            <span>{{ user.name }} ({{ user.role }})</span>
+            <button onclick="logout()" class="btn btn-small btn-secondary">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container-wide">
+        <div class="flex-between mb-2">
+            <h1 id="incident-title">Incident #{{ incident_id }}</h1>
+            <a href="/incidents-list" class="btn btn-secondary">Back to List</a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Incident Details</div>
+            <div id="incident-details"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Actions</div>
+            <div class="flex gap-1" id="actions-container"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Timeline</div>
+            <div class="timeline" id="timeline"></div>
+        </div>
+
+        <div id="ai-similar" class="card hidden">
+            <div class="card-header">Similar Incidents (AI)</div>
+            <div id="ai-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const incidentId = {{ incident_id }};
+        let incident = null;
+
+        async function loadIncident() {
+            const response = await fetch(`/incidents/${incidentId}`);
+            incident = await response.json();
+            
+            document.getElementById('incident-title').textContent = `Incident #${incident.id}: ${incident.title}`;
+            
+            document.getElementById('incident-details').innerHTML = `
+                <table style="width: 100%;">
+                    <tr><td style="width: 200px; font-weight: bold;">Title:</td><td>${incident.title}</td></tr>
+                    <tr><td style="font-weight: bold;">Description:</td><td>${incident.description}</td></tr>
+                    <tr><td style="font-weight: bold;">Service:</td><td>${incident.service_name}</td></tr>
+                    <tr><td style="font-weight: bold;">Severity:</td><td><span class="badge badge-${incident.severity.toLowerCase()}">${incident.severity}</span></td></tr>
+                    <tr><td style="font-weight: bold;">Status:</td><td><span class="badge badge-${incident.status.toLowerCase().replace('_', '-')}">${incident.status.replace('_', ' ')}</span></td></tr>
+                    <tr><td style="font-weight: bold;">Bank:</td><td>${incident.bank_name}</td></tr>
+                    <tr><td style="font-weight: bold;">Created By:</td><td>${incident.created_by_name}</td></tr>
+                    <tr><td style="font-weight: bold;">Created At:</td><td>${new Date(incident.created_at).toLocaleString()}</td></tr>
+                    ${incident.exception_text ? `<tr><td style="font-weight: bold;">Exception:</td><td><pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;">${incident.exception_text}</pre></td></tr>` : ''}
+                </table>
+            `;
+            
+            renderActions();
+            renderTimeline(incident.timeline);
+            renderAISimilar(incident.ai_similar);
+        }
+
+        function renderActions() {
+            const actions = [];
+            const userRole = '{{ user.role }}';
+            
+            if (incident.status === 'OPEN') {
+                if (['SUPPORT_L2', 'SUPPORT_EXPERT', 'INCIDENT_MANAGER', 'ADMIN'].includes(userRole)) {
+                    actions.push('<button onclick="updateStatus(\'ACKNOWLEDGED\')" class="btn btn-primary">Acknowledge</button>');
+                }
+            } else if (incident.status === 'ACKNOWLEDGED') {
+                actions.push('<button onclick="updateStatus(\'IN_PROGRESS\')" class="btn btn-primary">Move to In Progress</button>');
+            } else if (incident.status === 'IN_PROGRESS') {
+                if (['INCIDENT_MANAGER', 'ADMIN'].includes(userRole)) {
+                    actions.push('<button onclick="updateStatus(\'RESOLVED\')" class="btn btn-success">Resolve</button>');
+                }
+            } else if (incident.status === 'RESOLVED') {
+                if (['INCIDENT_MANAGER', 'ADMIN'].includes(userRole)) {
+                    actions.push('<button onclick="updateStatus(\'CLOSED\')" class="btn btn-success">Close</button>');
+                }
+            }
+            
+            actions.push('<button onclick="addComment()" class="btn btn-secondary">Add Comment</button>');
+            actions.push('<button onclick="triggerAISearch()" class="btn btn-secondary">Run AI Search</button>');
+            
+            if (['RESOLVED', 'CLOSED'].includes(incident.status)) {
+                actions.push(`<a href="/reports/incident/${incidentId}" target="_blank" class="btn btn-secondary">Generate Report</a>`);
+            }
+            
+            document.getElementById('actions-container').innerHTML = actions.join('');
+        }
+
+        function renderTimeline(timeline) {
+            if (!timeline || timeline.length === 0) {
+                document.getElementById('timeline').innerHTML = '<p>No timeline events</p>';
+                return;
+            }
+            
+            document.getElementById('timeline').innerHTML = timeline.map(event => `
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <strong>${event.event_type.replace('_', ' ')}</strong>
+                        <p>${event.event_description}</p>
+                        <div class="timeline-time">${event.performed_by_name} - ${new Date(event.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAISimilar(aiData) {
+            if (!aiData || !aiData.similar_incident_ids || aiData.similar_incident_ids.length === 0) {
+                return;
+            }
+            
+            document.getElementById('ai-similar').classList.remove('hidden');
+            document.getElementById('ai-content').innerHTML = `
+                <p><strong>Recommendation:</strong> ${aiData.recommendation_text}</p>
+                <p><strong>Similar Incidents:</strong></p>
+                <ul>
+                    ${aiData.similar_incident_ids.map(id => `
+                        <li>
+                            <a href="/incidents-detail/${id}">Incident #${id}</a>
+                            ${aiData.similarity_reasons[id] ? `- ${aiData.similarity_reasons[id]}` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        }
+
+        async function updateStatus(newStatus) {
+            const comment = prompt('Add a comment (optional):');
+            
+            const response = await fetch(`/incidents/${incidentId}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus, comment })
+            });
+            
+            if (response.ok) {
+                loadIncident();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + (error.detail || 'Failed to update status'));
+            }
+        }
+
+        async function addComment() {
+            const comment = prompt('Enter comment:');
+            if (!comment) return;
+            
+            const response = await fetch(`/incidents/${incidentId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ comment })
+            });
+            
+            if (response.ok) {
+                loadIncident();
+            } else {
+                alert('Failed to add comment');
+            }
+        }
+
+        async function triggerAISearch() {
+            if (!confirm('Run AI similar incident search?')) return;
+            
+            const response = await fetch(`/incidents/${incidentId}/ai-search`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                alert('AI search completed');
+                loadIncident();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + (error.detail || 'AI search failed'));
+            }
+        }
+
+        async function logout() {
+            await fetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+
+        loadIncident();
+    </script>
+</body>
+</html>
