@@ -15,13 +15,120 @@ from app.utils.audit_log import log_audit, AuditAction
 
 router = APIRouter(tags=["banks"])
 
+
+# Bank request models
+class CreateBankRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+
+
+class UpdateBankRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    active: Optional[bool] = None
+
+
 # Bank routes
 @router.get("/banks")
-async def list_banks(request: Request, db: Session = Depends(get_db)):
+async def list_banks(
+    request: Request,
+    include_inactive: bool = False,
+    db: Session = Depends(get_db)
+):
     """List all banks"""
     user = get_current_user(request, db)
-    banks = db.query(Bank).filter(Bank.active == True).all()
+
+    query = db.query(Bank)
+    if not include_inactive:
+        query = query.filter(Bank.active == True)
+
+    banks = query.all()
     return [bank.to_dict() for bank in banks]
+
+
+@router.post("/banks")
+async def create_bank(
+    request: Request,
+    bank_data: CreateBankRequest,
+    db: Session = Depends(get_db)
+):
+    """Create a new bank (ADMIN only)"""
+    user = get_current_user(request, db)
+
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only ADMIN can create banks")
+
+    # Check if bank name already exists
+    existing = db.query(Bank).filter(Bank.name == bank_data.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bank with this name already exists")
+
+    bank = Bank(name=bank_data.name, active=True)
+    db.add(bank)
+    db.commit()
+    db.refresh(bank)
+
+    log_audit(db, "BANK", bank.id, AuditAction.CREATE, f"Bank '{bank.name}' created", user.id)
+
+    return bank.to_dict()
+
+
+@router.put("/banks/{bank_id}")
+async def update_bank(
+    request: Request,
+    bank_id: int,
+    update_data: UpdateBankRequest,
+    db: Session = Depends(get_db)
+):
+    """Update a bank (ADMIN only)"""
+    user = get_current_user(request, db)
+
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only ADMIN can update banks")
+
+    bank = db.query(Bank).filter(Bank.id == bank_id).first()
+    if not bank:
+        raise HTTPException(status_code=404, detail="Bank not found")
+
+    if update_data.name is not None:
+        # Check if name is already taken by another bank
+        existing = db.query(Bank).filter(Bank.name == update_data.name, Bank.id != bank_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Bank with this name already exists")
+        bank.name = update_data.name
+
+    if update_data.active is not None:
+        bank.active = update_data.active
+
+    db.commit()
+    db.refresh(bank)
+
+    log_audit(db, "BANK", bank.id, AuditAction.UPDATE, f"Bank '{bank.name}' updated", user.id)
+
+    return bank.to_dict()
+
+
+@router.delete("/banks/{bank_id}")
+async def delete_bank(
+    request: Request,
+    bank_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a bank (ADMIN only) - sets inactive instead of hard delete"""
+    user = get_current_user(request, db)
+
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only ADMIN can delete banks")
+
+    bank = db.query(Bank).filter(Bank.id == bank_id).first()
+    if not bank:
+        raise HTTPException(status_code=404, detail="Bank not found")
+
+    # Soft delete - just set inactive
+    bank.active = False
+    db.commit()
+
+    log_audit(db, "BANK", bank.id, AuditAction.DELETE, f"Bank '{bank.name}' deactivated", user.id)
+
+    return {"success": True, "message": f"Bank '{bank.name}' has been deactivated"}
 
 # Architecture routes
 class CreateArchitectureRequest(BaseModel):

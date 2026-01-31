@@ -5,6 +5,146 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .admin-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .admin-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .admin-section-header h2 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-badge {
+            background: #7c3aed;
+            color: #ffffff;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .bank-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .bank-card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .bank-card.inactive {
+            opacity: 0.6;
+            background: #f8fafc;
+        }
+
+        .bank-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .bank-icon {
+            width: 40px;
+            height: 40px;
+            background: #eff6ff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .bank-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .bank-status {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .bank-status.active {
+            color: #059669;
+        }
+
+        .bank-status.inactive-status {
+            color: #dc2626;
+        }
+
+        .bank-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-header {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #0f172a;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -48,15 +188,55 @@
             <a href="/incidents-list" class="btn btn-primary">View All Incidents</a>
             <button onclick="showCreateIncident()" class="btn btn-success">Create New Incident</button>
         </div>
+
+        <!-- Admin Section - Bank Management -->
+        <div id="admin-section" class="admin-section hidden">
+            <div class="admin-section-header">
+                <h2>
+                    <span class="admin-badge">Admin</span>
+                    Bank Management
+                </h2>
+                <button onclick="showAddBankModal()" class="btn btn-primary">Add New Bank</button>
+            </div>
+            <div id="bank-list" class="bank-list">
+                <!-- Banks will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Bank Modal -->
+    <div id="bank-modal" class="modal-overlay hidden" onclick="closeBankModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header" id="modal-title">Add New Bank</div>
+            <form id="bank-form">
+                <input type="hidden" id="bank-id" value="">
+                <div class="form-group">
+                    <label class="form-label">Bank Name *</label>
+                    <input type="text" id="bank-name" class="form-input" required placeholder="Enter bank name">
+                </div>
+                <div id="bank-active-group" class="form-group hidden">
+                    <label class="form-label">
+                        <input type="checkbox" id="bank-active" checked> Active
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeBankModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="modal-submit-btn">Add Bank</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
+        const userRole = '{{ user.role }}';
+        const isAdmin = userRole === 'ADMIN';
+
         async function loadDashboard() {
             try {
                 // Load incidents
                 const response = await fetch('/incidents?page_size=10');
                 const data = await response.json();
-                
+
                 // Calculate stats
                 const stats = {
                     total: data.total,
@@ -64,13 +244,13 @@
                     in_progress: 0,
                     resolved: 0
                 };
-                
+
                 data.incidents.forEach(inc => {
                     if (inc.status === 'OPEN') stats.open++;
                     else if (inc.status === 'IN_PROGRESS') stats.in_progress++;
                     else if (inc.status === 'RESOLVED') stats.resolved++;
                 });
-                
+
                 // Display stats
                 document.getElementById('stats-grid').innerHTML = `
                     <div class="stat-card">
@@ -90,7 +270,7 @@
                         <div class="stat-label">Resolved</div>
                     </div>
                 `;
-                
+
                 // Display recent incidents
                 const tbody = document.querySelector('#recent-incidents tbody');
                 tbody.innerHTML = data.incidents.map(inc => `
@@ -103,21 +283,166 @@
                         <td>${new Date(inc.created_at).toLocaleDateString()}</td>
                     </tr>
                 `).join('');
-                
+
+                // Load admin section if user is admin
+                if (isAdmin) {
+                    document.getElementById('admin-section').classList.remove('hidden');
+                    loadBanks();
+                }
+
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
         }
-        
+
+        async function loadBanks() {
+            try {
+                const response = await fetch('/banks?include_inactive=true');
+                const banks = await response.json();
+
+                const bankList = document.getElementById('bank-list');
+
+                if (banks.length === 0) {
+                    bankList.innerHTML = '<p class="text-muted">No banks found. Add your first bank above.</p>';
+                    return;
+                }
+
+                bankList.innerHTML = banks.map(bank => `
+                    <div class="bank-card ${bank.active ? '' : 'inactive'}">
+                        <div class="bank-info">
+                            <div class="bank-icon">🏦</div>
+                            <div>
+                                <div class="bank-name">${bank.name}</div>
+                                <div class="bank-status ${bank.active ? 'active' : 'inactive-status'}">
+                                    ${bank.active ? 'Active' : 'Inactive'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bank-actions">
+                            <button onclick="editBank(${bank.id}, '${bank.name}', ${bank.active})" class="btn btn-small btn-secondary btn-icon" title="Edit">✏️</button>
+                            ${bank.active ?
+                                `<button onclick="deactivateBank(${bank.id}, '${bank.name}')" class="btn btn-small btn-danger btn-icon" title="Deactivate">🗑️</button>` :
+                                `<button onclick="activateBank(${bank.id}, '${bank.name}')" class="btn btn-small btn-success btn-icon" title="Activate">✓</button>`
+                            }
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading banks:', error);
+            }
+        }
+
+        function showAddBankModal() {
+            document.getElementById('modal-title').textContent = 'Add New Bank';
+            document.getElementById('modal-submit-btn').textContent = 'Add Bank';
+            document.getElementById('bank-id').value = '';
+            document.getElementById('bank-name').value = '';
+            document.getElementById('bank-active').checked = true;
+            document.getElementById('bank-active-group').classList.add('hidden');
+            document.getElementById('bank-modal').classList.remove('hidden');
+        }
+
+        function editBank(id, name, active) {
+            document.getElementById('modal-title').textContent = 'Edit Bank';
+            document.getElementById('modal-submit-btn').textContent = 'Save Changes';
+            document.getElementById('bank-id').value = id;
+            document.getElementById('bank-name').value = name;
+            document.getElementById('bank-active').checked = active;
+            document.getElementById('bank-active-group').classList.remove('hidden');
+            document.getElementById('bank-modal').classList.remove('hidden');
+        }
+
+        function closeBankModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('bank-modal').classList.add('hidden');
+            document.getElementById('bank-form').reset();
+        }
+
+        document.getElementById('bank-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const bankId = document.getElementById('bank-id').value;
+            const name = document.getElementById('bank-name').value.trim();
+            const active = document.getElementById('bank-active').checked;
+
+            if (!name) {
+                alert('Please enter a bank name');
+                return;
+            }
+
+            try {
+                let response;
+                if (bankId) {
+                    // Update existing bank
+                    response = await fetch(`/banks/${bankId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, active })
+                    });
+                } else {
+                    // Create new bank
+                    response = await fetch('/banks', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name })
+                    });
+                }
+
+                if (response.ok) {
+                    closeBankModal();
+                    loadBanks();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to save bank'));
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        });
+
+        async function deactivateBank(id, name) {
+            if (!confirm(`Are you sure you want to deactivate "${name}"?`)) return;
+
+            try {
+                const response = await fetch(`/banks/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadBanks();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to deactivate bank'));
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        }
+
+        async function activateBank(id, name) {
+            try {
+                const response = await fetch(`/banks/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: true })
+                });
+                if (response.ok) {
+                    loadBanks();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to activate bank'));
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        }
+
         function showCreateIncident() {
             window.location.href = '/incidents-list';
         }
-        
+
         async function logout() {
             await fetch('/auth/logout', { method: 'POST' });
             window.location.href = '/login';
         }
-        
+
         loadDashboard();
     </script>
 </body>
