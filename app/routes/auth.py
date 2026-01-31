@@ -19,7 +19,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Request/Response Models
 class LoginRequest(BaseModel):
-    email: str = Field(..., min_length=1)
+    username: str = Field(..., min_length=1)
     password: str = Field(..., min_length=1)
 
 class LoginResponse(BaseModel):
@@ -123,10 +123,12 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """
-    Login with email and password
+    Login with username and password
     """
-    # Find user by email
-    user = db.query(User).filter(User.email == login_data.email).first()
+    # Find user by username or email
+    user = db.query(User).filter(
+        (User.username == login_data.username) | (User.email == login_data.username)
+    ).first()
 
     if not user:
         raise HTTPException(
