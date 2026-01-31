@@ -1,15 +1,31 @@
 """
-Authentication utilities
+Authentication routes and utilities
 """
 import secrets
 import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import Request, HTTPException, status
+from fastapi import APIRouter, Request, HTTPException, status, Depends, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
 from app.models.user import User
 from app.models.session import Session as DBSession
+from database import get_db
 from config import settings
+
+# Create router
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Request/Response Models
+class LoginRequest(BaseModel):
+    email: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
+
+class LoginResponse(BaseModel):
+    success: bool
+    message: str
+    user: Optional[dict] = None
 
 def hash_password(password: str) -> str:
     """Hash password using bcrypt"""
@@ -97,3 +113,87 @@ def get_optional_user(request: Request, db: Session) -> Optional[User]:
         return get_current_user(request, db)
     except HTTPException:
         return None
+
+
+# Route endpoints
+@router.post("/login")
+async def login(
+    login_data: LoginRequest,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """
+    Login with email and password
+    """
+    # Find user by email
+    user = db.query(User).filter(User.email == login_data.email).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    # Verify password
+    if not verify_password(login_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    # Check if user is active
+    if not user.active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive"
+        )
+
+    # Create session
+    session_id = create_session(db, user.id)
+
+    # Set cookie
+    response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=session_id,
+        httponly=True,
+        max_age=settings.SESSION_EXPIRE_HOURS * 3600,
+        samesite="lax"
+    )
+
+    return {
+        "success": True,
+        "message": "Login successful",
+        "user": user.to_dict()
+    }
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """
+    Logout current user
+    """
+    session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
+
+    if session_id:
+        delete_session(db, session_id)
+
+    # Clear cookie
+    response.delete_cookie(key=settings.SESSION_COOKIE_NAME)
+
+    return {"success": True, "message": "Logged out successfully"}
+
+
+@router.get("/me")
+async def get_current_user_info(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Get current authenticated user info
+    """
+    user = get_current_user(request, db)
+    return user.to_dict()
