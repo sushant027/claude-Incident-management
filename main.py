@@ -1,6 +1,8 @@
 """
 Main FastAPI application
 """
+import os
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -13,6 +15,15 @@ from app.routes import auth, incidents, postmortems, corrective_actions, banks, 
 from app.services.scheduler import reminder_scheduler
 from app.utils.auth import get_optional_user
 from config import settings
+
+# Get the base directory (where main.py is located)
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+TEMPLATES_DIR = BASE_DIR / "templates"
+
+# Ensure static directory exists
+if not STATIC_DIR.exists():
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 # Lifespan context manager for startup/shutdown
 @asynccontextmanager
@@ -47,8 +58,8 @@ app = FastAPI(
 )
 
 # Static files and templates
-app.mount("/static", StaticFiles(directory="app/static", html=True), name="static")
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Include routers
 app.include_router(auth.router)
