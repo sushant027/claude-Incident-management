@@ -5,6 +5,390 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Incident Detail - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Status Progress Bar */
+        .status-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .status-progress::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 2rem;
+            right: 2rem;
+            height: 3px;
+            background: #e2e8f0;
+            transform: translateY(-50%);
+            z-index: 0;
+        }
+
+        .status-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .status-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .status-step.completed .status-dot {
+            background: #059669;
+            color: #ffffff;
+        }
+
+        .status-step.current .status-dot {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+        }
+
+        .status-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .status-step.completed .status-label,
+        .status-step.current .status-label {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        /* Incident Header */
+        .incident-header {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .incident-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .incident-id {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+
+        .incident-title-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .incident-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .severity-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .severity-badge.p1 { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .severity-badge.p2 { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+        .severity-badge.p3 { background: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
+        .severity-badge.p4 { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+        .status-badge-large {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .status-badge-large.open { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-badge-large.acknowledged { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+        .status-badge-large.in-progress { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .status-badge-large.resolved { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-badge-large.closed { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+        .incident-meta {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .incident-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .incident-meta-item strong {
+            color: #334155;
+        }
+
+        /* Details Grid */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .detail-section {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .detail-section h3 {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 1rem;
+            color: #1e293b;
+        }
+
+        .exception-box {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.8125rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Actions Bar */
+        .actions-bar {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .actions-bar .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .action-divider {
+            width: 1px;
+            height: 24px;
+            background: #e2e8f0;
+            margin: 0 0.5rem;
+        }
+
+        /* Timeline */
+        .timeline-container {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .timeline-header {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 1.5rem;
+        }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -2rem;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #2563eb;
+        }
+
+        .timeline-item.status-change .timeline-marker {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .timeline-item.comment .timeline-marker {
+            border-color: #64748b;
+        }
+
+        .timeline-item.created .timeline-marker {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        .timeline-content {
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 0.875rem 1rem;
+            border-left: 3px solid #e2e8f0;
+        }
+
+        .timeline-item.status-change .timeline-content {
+            border-left-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .timeline-item.created .timeline-content {
+            border-left-color: #059669;
+            background: #f0fdf4;
+        }
+
+        .timeline-event-type {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-description {
+            font-size: 0.875rem;
+            color: #475569;
+            margin: 0;
+        }
+
+        .timeline-time {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        /* AI Similar Section */
+        .ai-section {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid #bae6fd;
+        }
+
+        .ai-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 1rem;
+        }
+
+        .ai-badge {
+            background: #2563eb;
+            color: #ffffff;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .similar-incidents-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .similar-incidents-list li {
+            padding: 0.75rem;
+            background: #ffffff;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .similar-incidents-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .similar-incidents-list a {
+            font-weight: 500;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -21,138 +405,280 @@
     </nav>
 
     <div class="container-wide">
-        <div class="flex-between mb-2">
-            <h1 id="incident-title">Incident #{{ incident_id }}</h1>
-            <a href="/incidents-list" class="btn btn-secondary">Back to List</a>
+        <!-- Back Link -->
+        <div class="mb-2">
+            <a href="/incidents-list" style="color: #64748b; font-size: 0.875rem;">&larr; Back to Incidents</a>
         </div>
 
-        <div class="card">
-            <div class="card-header">Incident Details</div>
-            <div id="incident-details"></div>
+        <!-- Status Progress Bar -->
+        <div class="status-progress" id="status-progress">
+            <div class="status-step" data-status="OPEN">
+                <div class="status-dot">1</div>
+                <span class="status-label">Open</span>
+            </div>
+            <div class="status-step" data-status="ACKNOWLEDGED">
+                <div class="status-dot">2</div>
+                <span class="status-label">Acknowledged</span>
+            </div>
+            <div class="status-step" data-status="IN_PROGRESS">
+                <div class="status-dot">3</div>
+                <span class="status-label">In Progress</span>
+            </div>
+            <div class="status-step" data-status="RESOLVED">
+                <div class="status-dot">4</div>
+                <span class="status-label">Resolved</span>
+            </div>
+            <div class="status-step" data-status="CLOSED">
+                <div class="status-dot">5</div>
+                <span class="status-label">Closed</span>
+            </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">Actions</div>
-            <div class="flex gap-1" id="actions-container"></div>
+        <!-- Incident Header -->
+        <div class="incident-header">
+            <div class="incident-header-top">
+                <div>
+                    <div class="incident-id">Incident #{{ incident_id }}</div>
+                    <h1 class="incident-title-text" id="incident-title">Loading...</h1>
+                </div>
+                <div class="incident-badges">
+                    <span class="severity-badge" id="severity-badge">--</span>
+                    <span class="status-badge-large" id="status-badge">--</span>
+                </div>
+            </div>
+            <div class="incident-meta" id="incident-meta">
+                <!-- Populated by JS -->
+            </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">Timeline</div>
-            <div class="timeline" id="timeline"></div>
+        <!-- Actions Bar -->
+        <div class="actions-bar" id="actions-container">
+            <!-- Populated by JS -->
         </div>
 
-        <div id="ai-similar" class="card hidden">
-            <div class="card-header">Similar Incidents (AI)</div>
-            <div id="ai-content"></div>
+        <!-- Details Grid -->
+        <div class="details-grid">
+            <div class="detail-section">
+                <h3>Description</h3>
+                <div class="detail-value" id="description-value">Loading...</div>
+            </div>
+            <div class="detail-section">
+                <h3>Service Information</h3>
+                <div class="detail-value" id="service-info">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Exception (if any) -->
+        <div class="card hidden" id="exception-section">
+            <div class="card-header">Exception / Error Details</div>
+            <div class="card-body">
+                <div class="exception-box" id="exception-text"></div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-container">
+            <div class="timeline-header">Activity Timeline</div>
+            <div class="timeline" id="timeline">
+                <div class="empty-state">Loading timeline...</div>
+            </div>
+        </div>
+
+        <!-- AI Similar Incidents -->
+        <div id="ai-similar" class="ai-section hidden">
+            <div class="ai-section-header">
+                <span class="ai-badge">AI</span>
+                Similar Incidents Found
+            </div>
+            <p id="ai-recommendation" style="margin-bottom: 1rem; color: #475569;"></p>
+            <ul class="similar-incidents-list" id="ai-list"></ul>
         </div>
     </div>
 
     <script>
         const incidentId = {{ incident_id }};
         let incident = null;
+        const statusOrder = ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
         async function loadIncident() {
             const response = await fetch(`/incidents/${incidentId}`);
             incident = await response.json();
-            
-            document.getElementById('incident-title').textContent = `Incident #${incident.id}: ${incident.title}`;
-            
-            document.getElementById('incident-details').innerHTML = `
-                <table style="width: 100%;">
-                    <tr><td style="width: 200px; font-weight: bold;">Title:</td><td>${incident.title}</td></tr>
-                    <tr><td style="font-weight: bold;">Description:</td><td>${incident.description}</td></tr>
-                    <tr><td style="font-weight: bold;">Service:</td><td>${incident.service_name}</td></tr>
-                    <tr><td style="font-weight: bold;">Severity:</td><td><span class="badge badge-${incident.severity.toLowerCase()}">${incident.severity}</span></td></tr>
-                    <tr><td style="font-weight: bold;">Status:</td><td><span class="badge badge-${incident.status.toLowerCase().replace('_', '-')}">${incident.status.replace('_', ' ')}</span></td></tr>
-                    <tr><td style="font-weight: bold;">Bank:</td><td>${incident.bank_name}</td></tr>
-                    <tr><td style="font-weight: bold;">Created By:</td><td>${incident.created_by_name}</td></tr>
-                    <tr><td style="font-weight: bold;">Created At:</td><td>${new Date(incident.created_at).toLocaleString()}</td></tr>
-                    ${incident.exception_text ? `<tr><td style="font-weight: bold;">Exception:</td><td><pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;">${incident.exception_text}</pre></td></tr>` : ''}
-                </table>
+
+            // Update title
+            document.getElementById('incident-title').textContent = incident.title;
+
+            // Update severity badge
+            const severityBadge = document.getElementById('severity-badge');
+            severityBadge.textContent = incident.severity;
+            severityBadge.className = 'severity-badge ' + incident.severity.toLowerCase();
+
+            // Update status badge
+            const statusBadge = document.getElementById('status-badge');
+            const statusText = incident.status.replace('_', ' ');
+            statusBadge.textContent = statusText;
+            statusBadge.className = 'status-badge-large ' + incident.status.toLowerCase().replace('_', '-');
+
+            // Update status progress
+            updateStatusProgress(incident.status);
+
+            // Update meta info
+            document.getElementById('incident-meta').innerHTML = `
+                <div class="incident-meta-item">
+                    <strong>Bank:</strong> ${incident.bank_name}
+                </div>
+                <div class="incident-meta-item">
+                    <strong>Created by:</strong> ${incident.created_by_name}
+                </div>
+                <div class="incident-meta-item">
+                    <strong>Created:</strong> ${new Date(incident.created_at).toLocaleString()}
+                </div>
+                ${incident.resolved_at ? `
+                <div class="incident-meta-item">
+                    <strong>Resolved:</strong> ${new Date(incident.resolved_at).toLocaleString()}
+                </div>
+                ` : ''}
             `;
-            
+
+            // Update description
+            document.getElementById('description-value').textContent = incident.description;
+
+            // Update service info
+            document.getElementById('service-info').innerHTML = `
+                <p style="margin: 0;"><strong>Service:</strong> ${incident.service_name}</p>
+            `;
+
+            // Update exception if present
+            if (incident.exception_text) {
+                document.getElementById('exception-section').classList.remove('hidden');
+                document.getElementById('exception-text').textContent = incident.exception_text;
+            }
+
             renderActions();
             renderTimeline(incident.timeline);
             renderAISimilar(incident.ai_similar);
         }
 
+        function updateStatusProgress(currentStatus) {
+            const currentIndex = statusOrder.indexOf(currentStatus);
+            const steps = document.querySelectorAll('.status-step');
+
+            steps.forEach((step, index) => {
+                step.classList.remove('completed', 'current');
+                if (index < currentIndex) {
+                    step.classList.add('completed');
+                    step.querySelector('.status-dot').innerHTML = '&#10003;';
+                } else if (index === currentIndex) {
+                    step.classList.add('current');
+                    step.querySelector('.status-dot').textContent = index + 1;
+                } else {
+                    step.querySelector('.status-dot').textContent = index + 1;
+                }
+            });
+        }
+
         function renderActions() {
             const actions = [];
             const userRole = '{{ user.role }}';
-            
+
+            // Primary action based on status
             if (incident.status === 'OPEN') {
                 if (['SUPPORT_L2', 'SUPPORT_EXPERT', 'INCIDENT_MANAGER', 'ADMIN'].includes(userRole)) {
-                    actions.push('<button onclick="updateStatus(\'ACKNOWLEDGED\')" class="btn btn-primary">Acknowledge</button>');
+                    actions.push('<button onclick="updateStatus(\'ACKNOWLEDGED\')" class="btn btn-primary">Acknowledge Incident</button>');
                 }
             } else if (incident.status === 'ACKNOWLEDGED') {
-                actions.push('<button onclick="updateStatus(\'IN_PROGRESS\')" class="btn btn-primary">Move to In Progress</button>');
+                actions.push('<button onclick="updateStatus(\'IN_PROGRESS\')" class="btn btn-primary">Start Working</button>');
             } else if (incident.status === 'IN_PROGRESS') {
                 if (['INCIDENT_MANAGER', 'ADMIN'].includes(userRole)) {
-                    actions.push('<button onclick="updateStatus(\'RESOLVED\')" class="btn btn-success">Resolve</button>');
+                    actions.push('<button onclick="updateStatus(\'RESOLVED\')" class="btn btn-success">Mark Resolved</button>');
                 }
             } else if (incident.status === 'RESOLVED') {
                 if (['INCIDENT_MANAGER', 'ADMIN'].includes(userRole)) {
-                    actions.push('<button onclick="updateStatus(\'CLOSED\')" class="btn btn-success">Close</button>');
+                    actions.push('<button onclick="updateStatus(\'CLOSED\')" class="btn btn-success">Close Incident</button>');
                 }
             }
-            
+
+            // Divider if we have primary action
+            if (actions.length > 0) {
+                actions.push('<div class="action-divider"></div>');
+            }
+
+            // Secondary actions
             actions.push('<button onclick="addComment()" class="btn btn-secondary">Add Comment</button>');
-            actions.push('<button onclick="triggerAISearch()" class="btn btn-secondary">Run AI Search</button>');
-            
+            actions.push('<button onclick="triggerAISearch()" class="btn btn-secondary">Find Similar</button>');
+
             if (['RESOLVED', 'CLOSED'].includes(incident.status)) {
                 actions.push(`<a href="/reports/incident/${incidentId}" target="_blank" class="btn btn-secondary">Generate Report</a>`);
             }
-            
+
             document.getElementById('actions-container').innerHTML = actions.join('');
         }
 
         function renderTimeline(timeline) {
+            const container = document.getElementById('timeline');
+
             if (!timeline || timeline.length === 0) {
-                document.getElementById('timeline').innerHTML = '<p>No timeline events</p>';
+                container.innerHTML = '<div class="empty-state">No activity recorded yet</div>';
                 return;
             }
-            
-            document.getElementById('timeline').innerHTML = timeline.map(event => `
-                <div class="timeline-item">
-                    <div class="timeline-marker"></div>
-                    <div class="timeline-content">
-                        <strong>${event.event_type.replace('_', ' ')}</strong>
-                        <p>${event.event_description}</p>
-                        <div class="timeline-time">${event.performed_by_name} - ${new Date(event.created_at).toLocaleString()}</div>
+
+            container.innerHTML = timeline.map(event => {
+                const eventType = event.event_type.toLowerCase();
+                let itemClass = '';
+
+                if (eventType.includes('status') || eventType.includes('acknowledged') ||
+                    eventType.includes('resolved') || eventType.includes('closed')) {
+                    itemClass = 'status-change';
+                } else if (eventType.includes('created')) {
+                    itemClass = 'created';
+                } else if (eventType.includes('comment')) {
+                    itemClass = 'comment';
+                }
+
+                return `
+                    <div class="timeline-item ${itemClass}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-event-type">${formatEventType(event.event_type)}</div>
+                            <p class="timeline-description">${event.event_description}</p>
+                            <div class="timeline-time">${event.performed_by_name} &bull; ${new Date(event.created_at).toLocaleString()}</div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        function formatEventType(eventType) {
+            return eventType
+                .replace(/_/g, ' ')
+                .toLowerCase()
+                .replace(/\b\w/g, c => c.toUpperCase());
         }
 
         function renderAISimilar(aiData) {
             if (!aiData || !aiData.similar_incident_ids || aiData.similar_incident_ids.length === 0) {
                 return;
             }
-            
+
             document.getElementById('ai-similar').classList.remove('hidden');
-            document.getElementById('ai-content').innerHTML = `
-                <p><strong>Recommendation:</strong> ${aiData.recommendation_text}</p>
-                <p><strong>Similar Incidents:</strong></p>
-                <ul>
-                    ${aiData.similar_incident_ids.map(id => `
-                        <li>
-                            <a href="/incidents-detail/${id}">Incident #${id}</a>
-                            ${aiData.similarity_reasons[id] ? `- ${aiData.similarity_reasons[id]}` : ''}
-                        </li>
-                    `).join('')}
-                </ul>
-            `;
+            document.getElementById('ai-recommendation').textContent = aiData.recommendation_text || 'Based on AI analysis, these incidents may be related:';
+
+            document.getElementById('ai-list').innerHTML = aiData.similar_incident_ids.map(id => `
+                <li>
+                    <a href="/incidents-detail/${id}">Incident #${id}</a>
+                    ${aiData.similarity_reasons && aiData.similarity_reasons[id] ? `<span style="color: #64748b;"> - ${aiData.similarity_reasons[id]}</span>` : ''}
+                </li>
+            `).join('');
         }
 
         async function updateStatus(newStatus) {
-            const comment = prompt('Add a comment (optional):');
-            
+            const comment = prompt('Add a comment for this status change (optional):');
+
             const response = await fetch(`/incidents/${incidentId}/status`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus, comment })
             });
-            
+
             if (response.ok) {
                 loadIncident();
             } else {
@@ -162,15 +688,15 @@
         }
 
         async function addComment() {
-            const comment = prompt('Enter comment:');
+            const comment = prompt('Enter your comment:');
             if (!comment) return;
-            
+
             const response = await fetch(`/incidents/${incidentId}/comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ comment })
             });
-            
+
             if (response.ok) {
                 loadIncident();
             } else {
@@ -179,14 +705,14 @@
         }
 
         async function triggerAISearch() {
-            if (!confirm('Run AI similar incident search?')) return;
-            
+            if (!confirm('Run AI analysis to find similar incidents?')) return;
+
             const response = await fetch(`/incidents/${incidentId}/ai-search`, {
                 method: 'POST'
             });
-            
+
             if (response.ok) {
-                alert('AI search completed');
+                alert('AI analysis completed');
                 loadIncident();
             } else {
                 const error = await response.json();
