@@ -25,7 +25,7 @@ def log_audit(
         action=action,
         description=description,
         performed_by_id=performed_by_id,
-        metadata=json.dumps(metadata) if metadata else None
+        extra_data=json.dumps(metadata) if metadata else None
     )
     db.add(audit)
     db.commit()

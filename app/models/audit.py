@@ -21,8 +21,8 @@ class Audit(Base):
     performed_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     
-    # Optional metadata (JSON-serialized)
-    metadata = Column(Text, nullable=True)
+    # Optional extra data (JSON-serialized)
+    extra_data = Column(Text, nullable=True)
     
     # Relationships
     performed_by = relationship("User")
@@ -42,5 +42,5 @@ class Audit(Base):
             "performed_by_id": self.performed_by_id,
             "performed_by_name": self.performed_by.name if self.performed_by else "System",
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "metadata": json.loads(self.metadata) if self.metadata else None
+            "extra_data": json.loads(self.extra_data) if self.extra_data else None
         }
