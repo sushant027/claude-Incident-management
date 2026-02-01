@@ -1,99 +1,109 @@
 """
-Authentication utilities
+Authentication routes - login, logout
 """
-import secrets
-import bcrypt
-from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import Request, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from database import get_db
 from app.models.user import User
-from app.models.session import Session as DBSession
+from app.utils.auth import (
+    verify_password,
+    create_session,
+    delete_session,
+    get_current_user
+)
+from app.utils.audit_log import log_audit, AuditAction
 from config import settings
 
-def hash_password(password: str) -> str:
-    """Hash password using bcrypt"""
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+router = APIRouter(prefix="/auth", tags=["authentication"])
 
-def verify_password(password: str, password_hash: str) -> bool:
-    """Verify password against hash"""
-    return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
 
-def create_session(db: Session, user_id: int) -> str:
-    """Create new session for user"""
-    session_id = secrets.token_urlsafe(48)
-    expires_at = datetime.utcnow() + timedelta(hours=settings.SESSION_EXPIRE_HOURS)
-    
-    db_session = DBSession(
-        id=session_id,
-        user_id=user_id,
-        expires_at=expires_at
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    success: bool
+    message: str
+    user: dict = None
+
+
+@router.post("/login")
+async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+    """Login endpoint - validates credentials and creates session"""
+    user = db.query(User).filter(User.username == login_data.username).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password"
+        )
+
+    if not verify_password(login_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password"
+        )
+
+    if not user.active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive"
+        )
+
+    # Create session
+    session_id = create_session(db, user.id)
+
+    # Log audit
+    log_audit(db, "USER", user.id, AuditAction.LOGIN, f"User {user.username} logged in", user.id)
+
+    # Create response with session cookie
+    response = JSONResponse(content={
+        "success": True,
+        "message": "Login successful",
+        "user": user.to_dict()
+    })
+
+    response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=session_id,
+        httponly=True,
+        max_age=settings.SESSION_EXPIRE_HOURS * 3600,
+        samesite="lax"
     )
-    db.add(db_session)
-    db.commit()
-    
-    return session_id
 
-def get_session(db: Session, session_id: str) -> Optional[DBSession]:
-    """Get session by ID"""
-    session = db.query(DBSession).filter(DBSession.id == session_id).first()
-    
-    if not session:
-        return None
-    
-    # Check if expired
-    if session.expires_at < datetime.utcnow():
-        db.delete(session)
-        db.commit()
-        return None
-    
-    return session
+    return response
 
-def delete_session(db: Session, session_id: str):
-    """Delete session (logout)"""
-    session = db.query(DBSession).filter(DBSession.id == session_id).first()
-    if session:
-        db.delete(session)
-        db.commit()
 
-def get_current_user(request: Request, db: Session) -> User:
-    """
-    Get current user from session
-    Raises HTTPException if not authenticated
-    """
-    # Try cookie first, then header
+@router.post("/logout")
+async def logout(request: Request, db: Session = Depends(get_db)):
+    """Logout endpoint - destroys session"""
     session_id = request.cookies.get(settings.SESSION_COOKIE_NAME)
-    if not session_id:
-        session_id = request.headers.get("X-Session-ID")
-    
-    if not session_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
-    
-    session = get_session(db, session_id)
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session"
-        )
-    
-    user = db.query(User).filter(User.id == session.user_id).first()
-    if not user or not user.active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive"
-        )
-    
-    return user
 
-def get_optional_user(request: Request, db: Session) -> Optional[User]:
-    """
-    Get current user from session, return None if not authenticated
-    """
-    try:
-        return get_current_user(request, db)
-    except HTTPException:
-        return None
+    if session_id:
+        # Try to get user for audit logging
+        try:
+            user = get_current_user(request, db)
+            log_audit(db, "USER", user.id, AuditAction.LOGOUT, f"User {user.username} logged out", user.id)
+        except HTTPException:
+            pass
+
+        delete_session(db, session_id)
+
+    response = JSONResponse(content={
+        "success": True,
+        "message": "Logged out successfully"
+    })
+
+    response.delete_cookie(key=settings.SESSION_COOKIE_NAME)
+
+    return response
+
+
+@router.get("/me")
+async def get_current_user_info(request: Request, db: Session = Depends(get_db)):
+    """Get current authenticated user info"""
+    user = get_current_user(request, db)
+    return user.to_dict()
