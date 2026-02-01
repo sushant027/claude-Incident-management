@@ -42,8 +42,16 @@ class AuditAction(str, Enum):
     LOGOUT = "LOGOUT"
     CREATE = "CREATE"
     UPDATE = "UPDATE"
+    DELETE = "DELETE"
     STATUS_CHANGE = "STATUS_CHANGE"
     SEARCH = "SEARCH"
     AI_SEARCH = "AI_SEARCH"
     GENERATE_REPORT = "GENERATE_REPORT"
     COMMENT = "COMMENT"
+
+
+class ReconTechnology(str, Enum):
+    """Recon technology options"""
+    REDIS = "redis"
+    PANDAS = "pandas"
+    PROCEDURE = "procedure"

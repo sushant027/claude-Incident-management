@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from database import init_db
 from seed_data import seed_database
 from database import SessionLocal
-from app.routes import auth, incidents, postmortems, corrective_actions, banks, reports
+from app.routes import auth, incidents, postmortems, corrective_actions, banks, reports, bank_options
 from app.services.scheduler import reminder_scheduler
 from app.utils.auth import get_optional_user
 from config import settings
@@ -68,6 +68,7 @@ app.include_router(postmortems.router)
 app.include_router(corrective_actions.router)
 app.include_router(banks.router)
 app.include_router(reports.router)
+app.include_router(bank_options.router)
 
 # Root redirect
 @app.get("/", include_in_schema=False)
@@ -153,8 +154,41 @@ async def architecture_page(request: Request, bank_id: int):
         user = get_optional_user(request, db)
         if not user:
             return RedirectResponse(url="/login")
-        
+
         return templates.TemplateResponse("architecture.html", {
+            "request": request,
+            "user": user.to_dict(),
+            "bank_id": bank_id
+        })
+    finally:
+        db.close()
+
+@app.get("/bank-options", response_class=HTMLResponse, include_in_schema=False)
+async def bank_options_page(request: Request):
+    """Bank options page"""
+    db = SessionLocal()
+    try:
+        user = get_optional_user(request, db)
+        if not user:
+            return RedirectResponse(url="/login")
+
+        return templates.TemplateResponse("bank_options.html", {
+            "request": request,
+            "user": user.to_dict()
+        })
+    finally:
+        db.close()
+
+@app.get("/bank-options-edit/{bank_id}", response_class=HTMLResponse, include_in_schema=False)
+async def bank_options_edit_page(request: Request, bank_id: int):
+    """Bank options edit page"""
+    db = SessionLocal()
+    try:
+        user = get_optional_user(request, db)
+        if not user:
+            return RedirectResponse(url="/login")
+
+        return templates.TemplateResponse("bank_options_edit.html", {
             "request": request,
             "user": user.to_dict(),
             "bank_id": bank_id
