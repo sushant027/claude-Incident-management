@@ -214,7 +214,7 @@
             currentBankId = bankId;
 
             try {
-                const response = await fetch(`/bank-options/${bankId}`);
+                const response = await fetch(`/api/bank-options/${bankId}`);
                 const data = await response.json();
 
                 currentBankOption = data;
@@ -414,7 +414,7 @@
             }
 
             try {
-                const response = await fetch(`/bank-options/${currentBankId}`, {
+                const response = await fetch(`/api/bank-options/${currentBankId}`, {
                     method: 'DELETE'
                 });
 

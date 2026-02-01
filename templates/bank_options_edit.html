@@ -292,7 +292,7 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 isCreateMode = urlParams.get('create') === 'true';
 
-                const response = await fetch(`/bank-options/${bankId}`);
+                const response = await fetch(`/api/bank-options/${bankId}`);
                 const data = await response.json();
 
                 if (data.bank_name) {
@@ -404,13 +404,13 @@
                 const shouldCreate = isCreateMode || !existingData || !existingData.exists;
 
                 if (shouldCreate) {
-                    response = await fetch('/bank-options', {
+                    response = await fetch('/api/bank-options', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(formData)
                     });
                 } else {
-                    response = await fetch(`/bank-options/${bankId}`, {
+                    response = await fetch(`/api/bank-options/${bankId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(formData)
