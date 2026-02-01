@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models import UserRole
 from app.models.user import User
 from app.models.bank import Bank
+from app.models.bank_option import BankOption
 
 def hash_password(password: str) -> str:
     """Hash password using bcrypt"""
@@ -44,11 +45,72 @@ def seed_database(db: Session):
         db.add(user)
         print(f"Created user: {user.username} ({user.role.value})")
     
-    # Create initial bank
-    bank = Bank(name="Demo Bank", active=True)
-    db.add(bank)
-    print(f"Created bank: {bank.name}")
-    
+    # Create initial banks
+    demo_bank = Bank(name="Demo Bank", active=True)
+    db.add(demo_bank)
+    print(f"Created bank: {demo_bank.name}")
+
+    alpha_bank = Bank(name="Alpha Bank", active=True)
+    db.add(alpha_bank)
+    print(f"Created bank: {alpha_bank.name}")
+
+    beta_bank = Bank(name="Beta Bank", active=True)
+    db.add(beta_bank)
+    print(f"Created bank: {beta_bank.name}")
+
+    db.flush()  # Flush to get IDs
+
+    # Get admin user for updated_by
+    admin_user = db.query(User).filter(User.username == "admin").first()
+
+    # Create sample bank options for Demo Bank
+    demo_option = BankOption(
+        bank_id=demo_bank.id,
+        transaction_volume_per_day=1500000,
+        transaction_volume_per_month=45000000,
+        architecture_diagram_url="https://example.com/diagrams/demo-bank-arch.png",
+        number_of_app_servers=8,
+        app_server_type="Tomcat 9.0",
+        db_type="Oracle 19c",
+        number_of_db_instances=3,
+        implementation_developer_name="John Smith",
+        db_developer_name="Sarah Johnson",
+        db_developer_contact="sarah.johnson@demobank.com",
+        aerospike_enabled=True,
+        aerospike_version="6.2.0",
+        aerospike_description="Used for session caching and real-time transaction lookups",
+        redis_enabled=True,
+        redis_description="Redis cluster for API rate limiting and temporary data storage",
+        recon_enabled=True,
+        recon_technology="redis",
+        updated_by_id=admin_user.id if admin_user else None
+    )
+    db.add(demo_option)
+    print(f"Created bank option for: {demo_bank.name}")
+
+    # Create sample bank options for Alpha Bank
+    alpha_option = BankOption(
+        bank_id=alpha_bank.id,
+        transaction_volume_per_day=800000,
+        transaction_volume_per_month=24000000,
+        architecture_diagram_url="https://example.com/diagrams/alpha-bank-arch.png",
+        number_of_app_servers=4,
+        app_server_type="JBoss EAP 7.4",
+        db_type="PostgreSQL 14",
+        number_of_db_instances=2,
+        implementation_developer_name="Mike Chen",
+        db_developer_name="Lisa Wang",
+        db_developer_contact="lisa.wang@alphabank.com",
+        aerospike_enabled=False,
+        redis_enabled=True,
+        redis_description="Redis for caching and pub/sub messaging",
+        recon_enabled=True,
+        recon_technology="pandas",
+        updated_by_id=admin_user.id if admin_user else None
+    )
+    db.add(alpha_option)
+    print(f"Created bank option for: {alpha_bank.name}")
+
     db.commit()
     print("Database seeding completed!")
 
