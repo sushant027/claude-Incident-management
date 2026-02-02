@@ -11,9 +11,9 @@
         <a href="/dashboard" class="navbar-brand">Incident Management</a>
         <ul class="navbar-menu">
             <li><a href="/dashboard">Dashboard</a></li>
-            <li><a href="/incidents-list">Incidents</a></li>
+            <li><a href="/incidents-list" class="active">Incidents</a></li>
             <li><a href="/search">Search</a></li>
-            <li><a href="/bank-options">Bank Options</a></li>
+            <li><a href="/bank-options">Bank Infrastructure</a></li>
         </ul>
         <div class="navbar-user">
             <span>{{ user.name }} ({{ user.role }})</span>
@@ -22,7 +22,7 @@
     </nav>
 
     <div class="container-wide">
-        <div class="flex-between mb-2">
+        <div class="page-header">
             <h1>Incidents</h1>
             <button onclick="showCreateForm()" class="btn btn-success">Create New Incident</button>
         </div>
@@ -30,46 +30,56 @@
         <!-- Create Form (hidden by default) -->
         <div id="create-form" class="card hidden">
             <div class="card-header">Create New Incident</div>
-            <form id="incident-form">
-                <div class="form-group">
-                    <label class="form-label">Title *</label>
-                    <input type="text" name="title" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Description *</label>
-                    <textarea name="description" class="form-textarea" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Exception Text</label>
-                    <textarea name="exception_text" class="form-textarea"></textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Bank *</label>
-                    <select name="bank_id" class="form-select" required id="bank-select"></select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Service Name *</label>
-                    <input type="text" name="service_name" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Severity *</label>
-                    <select name="severity" class="form-select" required>
-                        <option value="P1">P1 - Critical</option>
-                        <option value="P2">P2 - High</option>
-                        <option value="P3" selected>P3 - Medium</option>
-                        <option value="P4">P4 - Low</option>
-                    </select>
-                </div>
-                <div class="flex gap-1">
-                    <button type="submit" class="btn btn-primary">Create Incident</button>
-                    <button type="button" onclick="hideCreateForm()" class="btn btn-secondary">Cancel</button>
-                </div>
-            </form>
+            <div class="card-body">
+                <form id="incident-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Title *</label>
+                            <input type="text" name="title" class="form-input" required placeholder="Brief description of the incident">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Service Name *</label>
+                            <input type="text" name="service_name" class="form-input" required placeholder="e.g., Payment Gateway, Auth Service">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description *</label>
+                        <textarea name="description" class="form-textarea" required placeholder="Detailed description of the incident, what happened, and impact"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Exception Text</label>
+                        <textarea name="exception_text" class="form-textarea" placeholder="Paste any error messages or stack traces here"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Bank *</label>
+                            <select name="bank_id" class="form-select" required id="bank-select"></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Severity *</label>
+                            <select name="severity" class="form-select" required>
+                                <option value="P1">P1 - Critical (Service Down)</option>
+                                <option value="P2">P2 - High (Major Impact)</option>
+                                <option value="P3" selected>P3 - Medium (Partial Impact)</option>
+                                <option value="P4">P4 - Low (Minor Issue)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mt-2">
+                        <button type="submit" class="btn btn-success">Create Incident</button>
+                        <button type="button" onclick="hideCreateForm()" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- Incidents Table -->
         <div class="card">
-            <table class="table">
+            <div id="loading-state" class="p-3 text-center text-muted">
+                <div class="spinner"></div>
+                <p class="mt-2">Loading incidents...</p>
+            </div>
+            <table class="table" id="incidents-table" style="display: none;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -83,6 +93,10 @@
                 </thead>
                 <tbody id="incidents-tbody"></tbody>
             </table>
+            <div id="no-incidents" class="p-3 text-center text-muted" style="display: none;">
+                <h3>No incidents found</h3>
+                <p>Click "Create New Incident" to report an issue.</p>
+            </div>
         </div>
 
         <div id="pagination" class="flex-between mt-2"></div>
@@ -90,51 +104,100 @@
 
     <script>
         let currentPage = 1;
-        
+
         async function loadBanks() {
-            const response = await fetch('/banks');
-            const banks = await response.json();
-            const select = document.getElementById('bank-select');
-            select.innerHTML = banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            try {
+                const response = await fetch('/banks');
+                const banks = await response.json();
+                const select = document.getElementById('bank-select');
+                select.innerHTML = banks.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading banks:', error);
+            }
         }
-        
+
         async function loadIncidents(page = 1) {
-            const response = await fetch(`/incidents?page=${page}&page_size=20`);
-            const data = await response.json();
-            
-            const tbody = document.getElementById('incidents-tbody');
-            tbody.innerHTML = data.incidents.map(inc => `
-                <tr onclick="window.location.href='/incidents-detail/${inc.id}'" style="cursor: pointer;">
-                    <td>#${inc.id}</td>
-                    <td>${inc.title}</td>
-                    <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
-                    <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${inc.status.replace('_', ' ')}</span></td>
-                    <td>${inc.service_name}</td>
-                    <td>${inc.bank_name || 'N/A'}</td>
-                    <td>${new Date(inc.created_at).toLocaleString()}</td>
-                </tr>
-            `).join('');
-            
-            const pagination = document.getElementById('pagination');
-            const totalPages = Math.ceil(data.total / 20);
-            pagination.innerHTML = `
-                <div>Showing ${data.incidents.length} of ${data.total} incidents</div>
-                <div class="flex gap-1">
-                    ${page > 1 ? `<button onclick="loadIncidents(${page - 1})" class="btn btn-small btn-secondary">Previous</button>` : ''}
-                    ${page < totalPages ? `<button onclick="loadIncidents(${page + 1})" class="btn btn-small btn-secondary">Next</button>` : ''}
-                </div>
-            `;
+            try {
+                currentPage = page;
+                const response = await fetch(`/incidents?page=${page}&page_size=20`);
+                const data = await response.json();
+
+                document.getElementById('loading-state').style.display = 'none';
+
+                if (data.incidents && data.incidents.length > 0) {
+                    document.getElementById('incidents-table').style.display = 'table';
+                    document.getElementById('no-incidents').style.display = 'none';
+
+                    const tbody = document.getElementById('incidents-tbody');
+                    tbody.innerHTML = data.incidents.map(inc => `
+                        <tr onclick="window.location.href='/incidents-detail/${inc.id}'" style="cursor: pointer;">
+                            <td><a href="/incidents-detail/${inc.id}">#${inc.id}</a></td>
+                            <td>${escapeHtml(inc.title)}</td>
+                            <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
+                            <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${formatStatus(inc.status)}</span></td>
+                            <td>${escapeHtml(inc.service_name)}</td>
+                            <td>${escapeHtml(inc.bank_name || 'N/A')}</td>
+                            <td>${formatDate(inc.created_at)}</td>
+                        </tr>
+                    `).join('');
+
+                    // Pagination
+                    const pagination = document.getElementById('pagination');
+                    const totalPages = Math.ceil(data.total / 20);
+                    pagination.innerHTML = `
+                        <div class="text-muted">Showing ${data.incidents.length} of ${data.total} incidents</div>
+                        <div class="flex gap-1">
+                            ${page > 1 ? `<button onclick="loadIncidents(${page - 1})" class="btn btn-small btn-outline">Previous</button>` : ''}
+                            <span class="p-2 text-muted">Page ${page} of ${totalPages}</span>
+                            ${page < totalPages ? `<button onclick="loadIncidents(${page + 1})" class="btn btn-small btn-outline">Next</button>` : ''}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('incidents-table').style.display = 'none';
+                    document.getElementById('no-incidents').style.display = 'block';
+                    document.getElementById('pagination').innerHTML = '';
+                }
+            } catch (error) {
+                console.error('Error loading incidents:', error);
+                document.getElementById('loading-state').innerHTML = `
+                    <p class="text-danger">Error loading incidents. Please refresh the page.</p>
+                `;
+            }
         }
-        
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatStatus(status) {
+            return status.replace(/_/g, ' ');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
         function showCreateForm() {
             document.getElementById('create-form').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        
+
         function hideCreateForm() {
             document.getElementById('create-form').classList.add('hidden');
             document.getElementById('incident-form').reset();
         }
-        
+
         document.getElementById('incident-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -146,14 +209,14 @@
                 service_name: formData.get('service_name'),
                 severity: formData.get('severity')
             };
-            
+
             try {
                 const response = await fetch('/incidents', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                
+
                 if (response.ok) {
                     hideCreateForm();
                     loadIncidents(currentPage);
@@ -163,15 +226,16 @@
                     alert('Error: ' + (error.detail || 'Failed to create incident'));
                 }
             } catch (error) {
-                alert('Network error');
+                console.error('Error creating incident:', error);
+                alert('Network error. Please try again.');
             }
         });
-        
+
         async function logout() {
             await fetch('/auth/logout', { method: 'POST' });
             window.location.href = '/login';
         }
-        
+
         loadBanks();
         loadIncidents();
     </script>

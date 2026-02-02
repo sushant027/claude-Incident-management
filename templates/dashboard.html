@@ -10,10 +10,10 @@
     <nav class="navbar">
         <a href="/dashboard" class="navbar-brand">Incident Management</a>
         <ul class="navbar-menu">
-            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/dashboard" class="active">Dashboard</a></li>
             <li><a href="/incidents-list">Incidents</a></li>
             <li><a href="/search">Search</a></li>
-            <li><a href="/bank-options">Bank Options</a></li>
+            <li><a href="/bank-options">Bank Infrastructure</a></li>
         </ul>
         <div class="navbar-user">
             <span>{{ user.name }} ({{ user.role }})</span>
@@ -22,15 +22,28 @@
     </nav>
 
     <div class="container">
-        <h1>Dashboard</h1>
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <div class="flex gap-1">
+                <a href="/incidents-list" class="btn btn-primary">View All Incidents</a>
+                <button onclick="showCreateIncident()" class="btn btn-success">Create New Incident</button>
+            </div>
+        </div>
 
         <div id="stats-grid" class="stats-grid">
-            <!-- Stats will be loaded here -->
+            <div class="stat-card">
+                <div class="stat-value">-</div>
+                <div class="stat-label">Loading...</div>
+            </div>
         </div>
 
         <div class="card">
             <div class="card-header">Recent Incidents</div>
-            <table class="table" id="recent-incidents">
+            <div id="loading-state" class="p-3 text-center text-muted">
+                <div class="spinner"></div>
+                <p class="mt-2">Loading incidents...</p>
+            </div>
+            <table class="table" id="recent-incidents" style="display: none;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -38,87 +51,129 @@
                         <th>Severity</th>
                         <th>Status</th>
                         <th>Service</th>
+                        <th>Bank</th>
                         <th>Created</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
+            <div id="no-incidents" class="p-3 text-center text-muted" style="display: none;">
+                <p>No incidents found. Create your first incident to get started.</p>
+            </div>
         </div>
 
-        <div class="flex gap-1">
-            <a href="/incidents-list" class="btn btn-primary">View All Incidents</a>
-            <button onclick="showCreateIncident()" class="btn btn-success">Create New Incident</button>
+        <div class="flex gap-1 mt-2">
+            <a href="/incidents-list" class="btn btn-outline">View All Incidents</a>
         </div>
     </div>
 
     <script>
         async function loadDashboard() {
             try {
-                // Load incidents
                 const response = await fetch('/incidents?page_size=10');
                 const data = await response.json();
-                
+
                 // Calculate stats
                 const stats = {
-                    total: data.total,
+                    total: data.total || 0,
                     open: 0,
                     in_progress: 0,
-                    resolved: 0
+                    resolved: 0,
+                    closed: 0
                 };
-                
-                data.incidents.forEach(inc => {
-                    if (inc.status === 'OPEN') stats.open++;
-                    else if (inc.status === 'IN_PROGRESS') stats.in_progress++;
-                    else if (inc.status === 'RESOLVED') stats.resolved++;
-                });
-                
-                // Display stats
+
+                if (data.incidents && data.incidents.length > 0) {
+                    data.incidents.forEach(inc => {
+                        if (inc.status === 'OPEN') stats.open++;
+                        else if (inc.status === 'IN_PROGRESS') stats.in_progress++;
+                        else if (inc.status === 'RESOLVED') stats.resolved++;
+                        else if (inc.status === 'CLOSED') stats.closed++;
+                    });
+                }
+
+                // Display stats with better formatting
                 document.getElementById('stats-grid').innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-value">${stats.total}</div>
+                    <div class="stat-card info">
+                        <div class="stat-value">${stats.total.toLocaleString()}</div>
                         <div class="stat-label">Total Incidents</div>
                     </div>
                     <div class="stat-card danger">
-                        <div class="stat-value">${stats.open}</div>
+                        <div class="stat-value">${stats.open.toLocaleString()}</div>
                         <div class="stat-label">Open</div>
                     </div>
                     <div class="stat-card warning">
-                        <div class="stat-value">${stats.in_progress}</div>
+                        <div class="stat-value">${stats.in_progress.toLocaleString()}</div>
                         <div class="stat-label">In Progress</div>
                     </div>
                     <div class="stat-card success">
-                        <div class="stat-value">${stats.resolved}</div>
+                        <div class="stat-value">${stats.resolved.toLocaleString()}</div>
                         <div class="stat-label">Resolved</div>
                     </div>
                 `;
-                
+
+                // Hide loading state
+                document.getElementById('loading-state').style.display = 'none';
+
                 // Display recent incidents
-                const tbody = document.querySelector('#recent-incidents tbody');
-                tbody.innerHTML = data.incidents.map(inc => `
-                    <tr>
-                        <td><a href="/incidents-detail/${inc.id}">#${inc.id}</a></td>
-                        <td>${inc.title}</td>
-                        <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
-                        <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${inc.status}</span></td>
-                        <td>${inc.service_name}</td>
-                        <td>${new Date(inc.created_at).toLocaleDateString()}</td>
-                    </tr>
-                `).join('');
-                
+                if (data.incidents && data.incidents.length > 0) {
+                    document.getElementById('recent-incidents').style.display = 'table';
+                    const tbody = document.querySelector('#recent-incidents tbody');
+                    tbody.innerHTML = data.incidents.map(inc => `
+                        <tr onclick="window.location.href='/incidents-detail/${inc.id}'" style="cursor: pointer;">
+                            <td><a href="/incidents-detail/${inc.id}">#${inc.id}</a></td>
+                            <td>${escapeHtml(inc.title)}</td>
+                            <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
+                            <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${formatStatus(inc.status)}</span></td>
+                            <td>${escapeHtml(inc.service_name)}</td>
+                            <td>${escapeHtml(inc.bank_name || 'N/A')}</td>
+                            <td>${formatDate(inc.created_at)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('no-incidents').style.display = 'block';
+                }
+
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                document.getElementById('loading-state').innerHTML = `
+                    <p class="text-danger">Error loading dashboard. Please refresh the page.</p>
+                `;
             }
         }
-        
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatStatus(status) {
+            return status.replace(/_/g, ' ');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
         function showCreateIncident() {
             window.location.href = '/incidents-list';
         }
-        
+
         async function logout() {
             await fetch('/auth/logout', { method: 'POST' });
             window.location.href = '/login';
         }
-        
+
+        // Load dashboard when page loads
         loadDashboard();
     </script>
 </body>
