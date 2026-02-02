@@ -13,7 +13,7 @@ from app.utils.auth import get_current_user
 from app.utils.rbac import can_manage_architecture
 from app.utils.audit_log import log_audit, AuditAction
 
-router = APIRouter(tags=["bank-options"])
+router = APIRouter(prefix="/api", tags=["bank-options"])
 
 
 class CreateBankOptionRequest(BaseModel):

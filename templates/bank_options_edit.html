@@ -3,79 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Bank Options - Incident Management</title>
+    <title>Edit Bank Configuration - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
         .form-container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
         .form-section {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: var(--spacing-6);
+            overflow: hidden;
         }
-        .form-section h3 {
-            margin-top: 0;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #1f3a5f;
-            color: #1f3a5f;
+        .form-section-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: var(--spacing-4) var(--spacing-5);
+            font-weight: 600;
+            font-size: var(--font-size-base);
+        }
+        .form-section-body {
+            padding: var(--spacing-5);
         }
         .form-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-4);
         }
-        .form-group {
-            margin-bottom: 15px;
+        .form-row:last-child {
+            margin-bottom: 0;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
+        .form-row-3 {
+            grid-template-columns: repeat(3, 1fr);
         }
-        .form-group input[type="text"],
-        .form-group input[type="number"],
-        .form-group input[type="email"],
-        .form-group input[type="url"],
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        .form-group textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3182ce;
-            box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+        .form-row-4 {
+            grid-template-columns: repeat(4, 1fr);
         }
         .checkbox-group {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--spacing-3);
+            padding: var(--spacing-3) 0;
         }
         .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
         }
         .conditional-fields {
-            margin-top: 10px;
-            padding: 15px;
-            background: #f7fafc;
-            border-radius: 4px;
+            margin-top: var(--spacing-4);
+            padding: var(--spacing-4);
+            background: var(--bg-gray);
+            border-radius: var(--border-radius-sm);
             display: none;
         }
         .conditional-fields.active {
@@ -83,36 +70,55 @@
         }
         .form-actions {
             display: flex;
-            gap: 10px;
+            gap: var(--spacing-3);
             justify-content: flex-end;
-            margin-top: 20px;
-        }
-        .btn-save {
-            background: #38a169;
-        }
-        .btn-save:hover {
-            background: #2f855a;
-        }
-        .btn-cancel {
-            background: #718096;
-        }
-        .btn-cancel:hover {
-            background: #4a5568;
+            padding: var(--spacing-5);
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            position: sticky;
+            bottom: var(--spacing-4);
         }
         .hint {
-            font-size: 12px;
-            color: #666;
-            margin-top: 3px;
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
+            margin-top: var(--spacing-1);
         }
         .bank-name-header {
-            background: #1f3a5f;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
             color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: var(--spacing-5) var(--spacing-6);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-6);
+            box-shadow: var(--shadow-md);
         }
         .bank-name-header h2 {
             margin: 0;
+            font-size: var(--font-size-2xl);
+        }
+        .section-divider {
+            border-top: 1px solid var(--border-color);
+            margin: var(--spacing-4) 0;
+            padding-top: var(--spacing-4);
+        }
+        .section-subtitle {
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-3);
+            font-size: var(--font-size-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        @media (max-width: 768px) {
+            .form-row-3, .form-row-4 {
+                grid-template-columns: 1fr;
+            }
+            .form-actions {
+                flex-direction: column;
+            }
+            .form-actions .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -123,7 +129,7 @@
             <li><a href="/dashboard">Dashboard</a></li>
             <li><a href="/incidents-list">Incidents</a></li>
             <li><a href="/search">Search</a></li>
-            <li><a href="/bank-options">Bank Options</a></li>
+            <li><a href="/bank-options">Bank Infrastructure</a></li>
         </ul>
         <div class="navbar-user">
             <span>{{ user.name }} ({{ user.role }})</span>
@@ -140,142 +146,360 @@
             <form id="bank-option-form" onsubmit="saveForm(event)">
                 <!-- Transaction Volume Section -->
                 <div class="form-section">
-                    <h3>Transaction Volume</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="transaction_volume_per_day">Transactions Per Day</label>
-                            <input type="number" id="transaction_volume_per_day" name="transaction_volume_per_day" min="0">
-                            <div class="hint">Average daily transaction count</div>
-                        </div>
-                        <div class="form-group">
-                            <label for="transaction_volume_per_month">Transactions Per Month</label>
-                            <input type="number" id="transaction_volume_per_month" name="transaction_volume_per_month" min="0">
-                            <div class="hint">Average monthly transaction count</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Architecture Section -->
-                <div class="form-section">
-                    <h3>Architecture</h3>
-                    <div class="form-group">
-                        <label for="architecture_diagram_url">Architecture Diagram URL</label>
-                        <input type="url" id="architecture_diagram_url" name="architecture_diagram_url" placeholder="https://...">
-                        <div class="hint">Link to architecture diagram (PNG, PDF, or documentation URL)</div>
-                    </div>
-                </div>
-
-                <!-- App Server Section -->
-                <div class="form-section">
-                    <h3>Application Server</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="number_of_app_servers">Number of App Servers</label>
-                            <input type="number" id="number_of_app_servers" name="number_of_app_servers" min="0">
-                        </div>
-                        <div class="form-group">
-                            <label for="app_server_type">App Server Type</label>
-                            <input type="text" id="app_server_type" name="app_server_type" placeholder="e.g., Tomcat, JBoss, WebLogic">
+                    <div class="form-section-header">Transaction Volume</div>
+                    <div class="form-section-body">
+                        <div class="form-row form-row-3">
+                            <div class="form-group">
+                                <label class="form-label" for="transaction_volume_per_day">Daily Volume</label>
+                                <input type="number" id="transaction_volume_per_day" name="transaction_volume_per_day" class="form-input" min="0">
+                                <div class="hint">Average daily transactions</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="transaction_volume_per_month">Monthly Volume</label>
+                                <input type="number" id="transaction_volume_per_month" name="transaction_volume_per_month" class="form-input" min="0">
+                                <div class="hint">Average monthly transactions</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="peak_tps">Peak TPS</label>
+                                <input type="number" id="peak_tps" name="peak_tps" class="form-input" min="0">
+                                <div class="hint">Peak transactions per second</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Database Section -->
+                <!-- Application Server Section -->
                 <div class="form-section">
-                    <h3>Database</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="db_type">Database Type</label>
-                            <input type="text" id="db_type" name="db_type" placeholder="e.g., Oracle, PostgreSQL, MySQL">
+                    <div class="form-section-header">Application Servers</div>
+                    <div class="form-section-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="number_of_app_servers">Number of Servers</label>
+                                <input type="number" id="number_of_app_servers" name="number_of_app_servers" class="form-input" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="app_server_type">Server Type</label>
+                                <input type="text" id="app_server_type" name="app_server_type" class="form-input" placeholder="e.g., Tomcat, JBoss, WebLogic">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="number_of_db_instances">Number of DB Instances</label>
-                            <input type="number" id="number_of_db_instances" name="number_of_db_instances" min="0">
+                        <div class="form-row form-row-3">
+                            <div class="form-group">
+                                <label class="form-label" for="app_server_cpu">CPU</label>
+                                <input type="text" id="app_server_cpu" name="app_server_cpu" class="form-input" placeholder="e.g., 16 vCPU">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="app_server_memory">Memory</label>
+                                <input type="text" id="app_server_memory" name="app_server_memory" class="form-input" placeholder="e.g., 32 GB">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="app_server_os">Operating System</label>
+                                <input type="text" id="app_server_os" name="app_server_os" class="form-input" placeholder="e.g., RHEL 8.5">
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Developer Contacts Section -->
+                <!-- Database Server Section -->
                 <div class="form-section">
-                    <h3>Developer Contacts</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="implementation_developer_name">Implementation Developer Name</label>
-                            <input type="text" id="implementation_developer_name" name="implementation_developer_name">
+                    <div class="form-section-header">Database Servers</div>
+                    <div class="form-section-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="db_type">Database Type</label>
+                                <input type="text" id="db_type" name="db_type" class="form-input" placeholder="e.g., Oracle, PostgreSQL, MySQL">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="number_of_db_instances">Number of Instances</label>
+                                <input type="number" id="number_of_db_instances" name="number_of_db_instances" class="form-input" min="0">
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="db_developer_name">DB Developer Name</label>
-                            <input type="text" id="db_developer_name" name="db_developer_name">
-                        </div>
-                        <div class="form-group">
-                            <label for="db_developer_contact">DB Developer Contact</label>
-                            <input type="text" id="db_developer_contact" name="db_developer_contact" placeholder="Email or phone number">
+                        <div class="form-row form-row-4">
+                            <div class="form-group">
+                                <label class="form-label" for="db_server_cpu">CPU</label>
+                                <input type="text" id="db_server_cpu" name="db_server_cpu" class="form-input" placeholder="e.g., 32 vCPU">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="db_server_memory">Memory</label>
+                                <input type="text" id="db_server_memory" name="db_server_memory" class="form-input" placeholder="e.g., 128 GB">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="db_server_storage">Storage</label>
+                                <input type="text" id="db_server_storage" name="db_server_storage" class="form-input" placeholder="e.g., 2 TB SSD">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="db_server_os">Operating System</label>
+                                <input type="text" id="db_server_os" name="db_server_os" class="form-input" placeholder="e.g., Oracle Linux 8">
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Aerospike Section -->
                 <div class="form-section">
-                    <h3>Aerospike</h3>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="aerospike_enabled" name="aerospike_enabled" onchange="toggleConditional('aerospike')">
-                        <label for="aerospike_enabled">Aerospike Enabled</label>
-                    </div>
-                    <div id="aerospike-fields" class="conditional-fields">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="aerospike_version">Aerospike Version</label>
-                                <input type="text" id="aerospike_version" name="aerospike_version" placeholder="e.g., 6.2.0">
-                            </div>
+                    <div class="form-section-header">Aerospike Cache</div>
+                    <div class="form-section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="aerospike_enabled" name="aerospike_enabled" onchange="toggleConditional('aerospike')">
+                            <label for="aerospike_enabled">Aerospike Enabled</label>
                         </div>
-                        <div class="form-group">
-                            <label for="aerospike_description">Aerospike Description</label>
-                            <textarea id="aerospike_description" name="aerospike_description" placeholder="Describe the Aerospike setup and usage"></textarea>
+                        <div id="aerospike-fields" class="conditional-fields">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="aerospike_version">Version</label>
+                                    <input type="text" id="aerospike_version" name="aerospike_version" class="form-input" placeholder="e.g., 6.2.0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="number_of_aerospike_servers">Number of Servers</label>
+                                    <input type="number" id="number_of_aerospike_servers" name="number_of_aerospike_servers" class="form-input" min="0">
+                                </div>
+                            </div>
+                            <div class="form-row form-row-4">
+                                <div class="form-group">
+                                    <label class="form-label" for="aerospike_server_cpu">CPU</label>
+                                    <input type="text" id="aerospike_server_cpu" name="aerospike_server_cpu" class="form-input" placeholder="e.g., 16 vCPU">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="aerospike_server_memory">Memory</label>
+                                    <input type="text" id="aerospike_server_memory" name="aerospike_server_memory" class="form-input" placeholder="e.g., 64 GB">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="aerospike_server_storage">Storage</label>
+                                    <input type="text" id="aerospike_server_storage" name="aerospike_server_storage" class="form-input" placeholder="e.g., 1 TB NVMe">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="aerospike_server_os">Operating System</label>
+                                    <input type="text" id="aerospike_server_os" name="aerospike_server_os" class="form-input" placeholder="e.g., Ubuntu 22.04">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="aerospike_description">Description</label>
+                                <textarea id="aerospike_description" name="aerospike_description" class="form-textarea" placeholder="Describe the Aerospike setup and usage"></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Redis Section -->
                 <div class="form-section">
-                    <h3>Redis</h3>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="redis_enabled" name="redis_enabled" onchange="toggleConditional('redis')">
-                        <label for="redis_enabled">Redis Enabled</label>
-                    </div>
-                    <div id="redis-fields" class="conditional-fields">
-                        <div class="form-group">
-                            <label for="redis_description">Redis Description</label>
-                            <textarea id="redis_description" name="redis_description" placeholder="Describe the Redis setup and usage"></textarea>
+                    <div class="form-section-header">Redis Cache</div>
+                    <div class="form-section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="redis_enabled" name="redis_enabled" onchange="toggleConditional('redis')">
+                            <label for="redis_enabled">Redis Enabled</label>
+                        </div>
+                        <div id="redis-fields" class="conditional-fields">
+                            <div class="form-row form-row-3">
+                                <div class="form-group">
+                                    <label class="form-label" for="redis_version">Version</label>
+                                    <input type="text" id="redis_version" name="redis_version" class="form-input" placeholder="e.g., 7.0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="number_of_redis_servers">Number of Servers</label>
+                                    <input type="number" id="number_of_redis_servers" name="number_of_redis_servers" class="form-input" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="redis_server_memory">Memory per Server</label>
+                                    <input type="text" id="redis_server_memory" name="redis_server_memory" class="form-input" placeholder="e.g., 16 GB">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="redis_description">Description</label>
+                                <textarea id="redis_description" name="redis_description" class="form-textarea" placeholder="Describe the Redis setup and usage"></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recon Section -->
+                <!-- Load Balancer Section -->
                 <div class="form-section">
-                    <h3>Reconciliation (Recon)</h3>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="recon_enabled" name="recon_enabled" onchange="toggleConditional('recon')">
-                        <label for="recon_enabled">Recon Enabled</label>
+                    <div class="form-section-header">Load Balancer</div>
+                    <div class="form-section-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="load_balancer_type">Load Balancer Type</label>
+                                <input type="text" id="load_balancer_type" name="load_balancer_type" class="form-input" placeholder="e.g., F5, HAProxy, AWS ALB">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="number_of_load_balancers">Number of Load Balancers</label>
+                                <input type="number" id="number_of_load_balancers" name="number_of_load_balancers" class="form-input" min="0">
+                            </div>
+                        </div>
                     </div>
-                    <div id="recon-fields" class="conditional-fields">
+                </div>
+
+                <!-- Monitoring & Logging Section -->
+                <div class="form-section">
+                    <div class="form-section-header">Monitoring & Logging</div>
+                    <div class="form-section-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="monitoring_tool">Monitoring Tool</label>
+                                <input type="text" id="monitoring_tool" name="monitoring_tool" class="form-input" placeholder="e.g., Prometheus, Datadog, New Relic">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="logging_tool">Logging Tool</label>
+                                <input type="text" id="logging_tool" name="logging_tool" class="form-input" placeholder="e.g., ELK, Splunk, Graylog">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network & Security Section -->
+                <div class="form-section">
+                    <div class="form-section-header">Network & Security</div>
+                    <div class="form-section-body">
+                        <div class="form-row form-row-3">
+                            <div class="form-group">
+                                <label class="form-label" for="network_zone">Network Zone</label>
+                                <select id="network_zone" name="network_zone" class="form-select">
+                                    <option value="">-- Select Zone --</option>
+                                    <option value="DMZ">DMZ</option>
+                                    <option value="Internal">Internal</option>
+                                    <option value="Secure">Secure</option>
+                                    <option value="Public">Public</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="ssl_certificate_expiry">SSL Certificate Expiry</label>
+                                <input type="date" id="ssl_certificate_expiry" name="ssl_certificate_expiry" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">WAF Enabled</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="waf_enabled" name="waf_enabled">
+                                    <label for="waf_enabled">Web Application Firewall</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environment & DR Section -->
+                <div class="form-section">
+                    <div class="form-section-header">Environment & Disaster Recovery</div>
+                    <div class="form-section-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="deployment_region">Deployment Region</label>
+                                <input type="text" id="deployment_region" name="deployment_region" class="form-input" placeholder="e.g., us-east-1, eu-west-1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="data_center">Data Center</label>
+                                <input type="text" id="data_center" name="data_center" class="form-input" placeholder="e.g., Primary DC Mumbai">
+                            </div>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="dr_enabled" name="dr_enabled" onchange="toggleConditional('dr')">
+                            <label for="dr_enabled">Disaster Recovery Enabled</label>
+                        </div>
+                        <div id="dr-fields" class="conditional-fields">
+                            <div class="form-group">
+                                <label class="form-label" for="dr_location">DR Location</label>
+                                <input type="text" id="dr_location" name="dr_location" class="form-input" placeholder="e.g., Secondary DC Chennai">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SLA & Recovery Section -->
+                <div class="form-section">
+                    <div class="form-section-header">SLA & Recovery Objectives</div>
+                    <div class="form-section-body">
+                        <div class="form-row form-row-3">
+                            <div class="form-group">
+                                <label class="form-label" for="uptime_sla">Uptime SLA</label>
+                                <input type="text" id="uptime_sla" name="uptime_sla" class="form-input" placeholder="e.g., 99.99%">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="rto">RTO (Recovery Time)</label>
+                                <input type="text" id="rto" name="rto" class="form-input" placeholder="e.g., 4 hours">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="rpo">RPO (Recovery Point)</label>
+                                <input type="text" id="rpo" name="rpo" class="form-input" placeholder="e.g., 1 hour">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reconciliation Section -->
+                <div class="form-section">
+                    <div class="form-section-header">Reconciliation</div>
+                    <div class="form-section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="recon_enabled" name="recon_enabled" onchange="toggleConditional('recon')">
+                            <label for="recon_enabled">Reconciliation Enabled</label>
+                        </div>
+                        <div id="recon-fields" class="conditional-fields">
+                            <div class="form-group">
+                                <label class="form-label" for="recon_technology">Technology</label>
+                                <select id="recon_technology" name="recon_technology" class="form-select">
+                                    <option value="">-- Select Technology --</option>
+                                    <option value="redis">Redis</option>
+                                    <option value="pandas">Pandas</option>
+                                    <option value="procedure">Stored Procedure</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Contacts Section -->
+                <div class="form-section">
+                    <div class="form-section-header">Team Contacts</div>
+                    <div class="form-section-body">
+                        <div class="section-subtitle">Implementation Developer</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="implementation_developer_name">Name</label>
+                                <input type="text" id="implementation_developer_name" name="implementation_developer_name" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="implementation_developer_contact">Contact</label>
+                                <input type="text" id="implementation_developer_contact" name="implementation_developer_contact" class="form-input" placeholder="Email or phone">
+                            </div>
+                        </div>
+
+                        <div class="section-divider"></div>
+                        <div class="section-subtitle">Database Developer</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="db_developer_name">Name</label>
+                                <input type="text" id="db_developer_name" name="db_developer_name" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="db_developer_contact">Contact</label>
+                                <input type="text" id="db_developer_contact" name="db_developer_contact" class="form-input" placeholder="Email or phone">
+                            </div>
+                        </div>
+
+                        <div class="section-divider"></div>
+                        <div class="section-subtitle">Operations Team</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="ops_team_contact">Contact</label>
+                                <input type="text" id="ops_team_contact" name="ops_team_contact" class="form-input" placeholder="Email or phone">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Architecture Section -->
+                <div class="form-section">
+                    <div class="form-section-header">Architecture</div>
+                    <div class="form-section-body">
                         <div class="form-group">
-                            <label for="recon_technology">Recon Technology</label>
-                            <select id="recon_technology" name="recon_technology">
-                                <option value="">-- Select Technology --</option>
-                                <option value="redis">Redis</option>
-                                <option value="pandas">Pandas</option>
-                                <option value="procedure">Stored Procedure</option>
-                            </select>
+                            <label class="form-label" for="architecture_diagram_url">Architecture Diagram URL</label>
+                            <input type="url" id="architecture_diagram_url" name="architecture_diagram_url" class="form-input" placeholder="https://...">
+                            <div class="hint">Link to architecture diagram (PNG, PDF, or documentation URL)</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Form Actions -->
                 <div class="form-actions">
-                    <button type="button" class="btn btn-cancel" onclick="cancel()">Cancel</button>
-                    <button type="submit" class="btn btn-save">Save Configuration</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancel()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Configuration</button>
                 </div>
             </form>
         </div>
@@ -288,11 +512,10 @@
 
         async function loadBankOption() {
             try {
-                // Check if create mode
                 const urlParams = new URLSearchParams(window.location.search);
                 isCreateMode = urlParams.get('create') === 'true';
 
-                const response = await fetch(`/bank-options/${bankId}`);
+                const response = await fetch(`/api/bank-options/${bankId}`);
                 const data = await response.json();
 
                 if (data.bank_name) {
@@ -315,6 +538,7 @@
             // Transaction volume
             setValue('transaction_volume_per_day', data.transaction_volume_per_day);
             setValue('transaction_volume_per_month', data.transaction_volume_per_month);
+            setValue('peak_tps', data.peak_tps);
 
             // Architecture
             setValue('architecture_diagram_url', data.architecture_diagram_url);
@@ -322,31 +546,75 @@
             // App server
             setValue('number_of_app_servers', data.number_of_app_servers);
             setValue('app_server_type', data.app_server_type);
+            setValue('app_server_cpu', data.app_server_cpu);
+            setValue('app_server_memory', data.app_server_memory);
+            setValue('app_server_os', data.app_server_os);
 
             // Database
             setValue('db_type', data.db_type);
             setValue('number_of_db_instances', data.number_of_db_instances);
-
-            // Developers
-            setValue('implementation_developer_name', data.implementation_developer_name);
-            setValue('db_developer_name', data.db_developer_name);
-            setValue('db_developer_contact', data.db_developer_contact);
+            setValue('db_server_cpu', data.db_server_cpu);
+            setValue('db_server_memory', data.db_server_memory);
+            setValue('db_server_storage', data.db_server_storage);
+            setValue('db_server_os', data.db_server_os);
 
             // Aerospike
             setCheckbox('aerospike_enabled', data.aerospike_enabled);
             toggleConditional('aerospike');
             setValue('aerospike_version', data.aerospike_version);
+            setValue('number_of_aerospike_servers', data.number_of_aerospike_servers);
+            setValue('aerospike_server_cpu', data.aerospike_server_cpu);
+            setValue('aerospike_server_memory', data.aerospike_server_memory);
+            setValue('aerospike_server_storage', data.aerospike_server_storage);
+            setValue('aerospike_server_os', data.aerospike_server_os);
             setValue('aerospike_description', data.aerospike_description);
 
             // Redis
             setCheckbox('redis_enabled', data.redis_enabled);
             toggleConditional('redis');
+            setValue('redis_version', data.redis_version);
+            setValue('number_of_redis_servers', data.number_of_redis_servers);
+            setValue('redis_server_memory', data.redis_server_memory);
             setValue('redis_description', data.redis_description);
+
+            // Load Balancer
+            setValue('load_balancer_type', data.load_balancer_type);
+            setValue('number_of_load_balancers', data.number_of_load_balancers);
+
+            // Monitoring & Logging
+            setValue('monitoring_tool', data.monitoring_tool);
+            setValue('logging_tool', data.logging_tool);
+
+            // Network & Security
+            setValue('network_zone', data.network_zone);
+            if (data.ssl_certificate_expiry) {
+                setValue('ssl_certificate_expiry', data.ssl_certificate_expiry.split('T')[0]);
+            }
+            setCheckbox('waf_enabled', data.waf_enabled);
+
+            // Environment & DR
+            setValue('deployment_region', data.deployment_region);
+            setValue('data_center', data.data_center);
+            setCheckbox('dr_enabled', data.dr_enabled);
+            toggleConditional('dr');
+            setValue('dr_location', data.dr_location);
+
+            // SLA
+            setValue('uptime_sla', data.uptime_sla);
+            setValue('rto', data.rto);
+            setValue('rpo', data.rpo);
 
             // Recon
             setCheckbox('recon_enabled', data.recon_enabled);
             toggleConditional('recon');
             setValue('recon_technology', data.recon_technology);
+
+            // Contacts
+            setValue('implementation_developer_name', data.implementation_developer_name);
+            setValue('implementation_developer_contact', data.implementation_developer_contact);
+            setValue('db_developer_name', data.db_developer_name);
+            setValue('db_developer_contact', data.db_developer_contact);
+            setValue('ops_team_contact', data.ops_team_contact);
         }
 
         function setValue(id, value) {
@@ -380,23 +648,68 @@
 
             const formData = {
                 bank_id: bankId,
+                // Transaction volume
                 transaction_volume_per_day: getIntValue('transaction_volume_per_day'),
                 transaction_volume_per_month: getIntValue('transaction_volume_per_month'),
+                peak_tps: getIntValue('peak_tps'),
+                // Architecture
                 architecture_diagram_url: getStringValue('architecture_diagram_url'),
+                // App server
                 number_of_app_servers: getIntValue('number_of_app_servers'),
                 app_server_type: getStringValue('app_server_type'),
+                app_server_cpu: getStringValue('app_server_cpu'),
+                app_server_memory: getStringValue('app_server_memory'),
+                app_server_os: getStringValue('app_server_os'),
+                // Database
                 db_type: getStringValue('db_type'),
                 number_of_db_instances: getIntValue('number_of_db_instances'),
-                implementation_developer_name: getStringValue('implementation_developer_name'),
-                db_developer_name: getStringValue('db_developer_name'),
-                db_developer_contact: getStringValue('db_developer_contact'),
+                db_server_cpu: getStringValue('db_server_cpu'),
+                db_server_memory: getStringValue('db_server_memory'),
+                db_server_storage: getStringValue('db_server_storage'),
+                db_server_os: getStringValue('db_server_os'),
+                // Aerospike
                 aerospike_enabled: document.getElementById('aerospike_enabled').checked,
                 aerospike_version: getStringValue('aerospike_version'),
+                number_of_aerospike_servers: getIntValue('number_of_aerospike_servers'),
+                aerospike_server_cpu: getStringValue('aerospike_server_cpu'),
+                aerospike_server_memory: getStringValue('aerospike_server_memory'),
+                aerospike_server_storage: getStringValue('aerospike_server_storage'),
+                aerospike_server_os: getStringValue('aerospike_server_os'),
                 aerospike_description: getStringValue('aerospike_description'),
+                // Redis
                 redis_enabled: document.getElementById('redis_enabled').checked,
+                redis_version: getStringValue('redis_version'),
+                number_of_redis_servers: getIntValue('number_of_redis_servers'),
+                redis_server_memory: getStringValue('redis_server_memory'),
                 redis_description: getStringValue('redis_description'),
+                // Load Balancer
+                load_balancer_type: getStringValue('load_balancer_type'),
+                number_of_load_balancers: getIntValue('number_of_load_balancers'),
+                // Monitoring & Logging
+                monitoring_tool: getStringValue('monitoring_tool'),
+                logging_tool: getStringValue('logging_tool'),
+                // Network & Security
+                network_zone: getStringValue('network_zone'),
+                ssl_certificate_expiry: getStringValue('ssl_certificate_expiry'),
+                waf_enabled: document.getElementById('waf_enabled').checked,
+                // Environment & DR
+                deployment_region: getStringValue('deployment_region'),
+                data_center: getStringValue('data_center'),
+                dr_enabled: document.getElementById('dr_enabled').checked,
+                dr_location: getStringValue('dr_location'),
+                // SLA
+                uptime_sla: getStringValue('uptime_sla'),
+                rto: getStringValue('rto'),
+                rpo: getStringValue('rpo'),
+                // Recon
                 recon_enabled: document.getElementById('recon_enabled').checked,
-                recon_technology: getStringValue('recon_technology')
+                recon_technology: getStringValue('recon_technology'),
+                // Contacts
+                implementation_developer_name: getStringValue('implementation_developer_name'),
+                implementation_developer_contact: getStringValue('implementation_developer_contact'),
+                db_developer_name: getStringValue('db_developer_name'),
+                db_developer_contact: getStringValue('db_developer_contact'),
+                ops_team_contact: getStringValue('ops_team_contact')
             };
 
             try {
@@ -404,13 +717,13 @@
                 const shouldCreate = isCreateMode || !existingData || !existingData.exists;
 
                 if (shouldCreate) {
-                    response = await fetch('/bank-options', {
+                    response = await fetch('/api/bank-options', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(formData)
                     });
                 } else {
-                    response = await fetch(`/bank-options/${bankId}`, {
+                    response = await fetch(`/api/bank-options/${bankId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(formData)

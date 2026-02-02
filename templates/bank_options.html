@@ -3,133 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bank Options - Incident Management</title>
+    <title>Bank Infrastructure - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
-    <style>
-        .bank-selector {
-            margin-bottom: 20px;
-        }
-        .bank-selector select {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            min-width: 250px;
-        }
-        .options-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .section-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .section-card h3 {
-            margin-top: 0;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #1f3a5f;
-            color: #1f3a5f;
-        }
-        .option-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .option-row:last-child {
-            border-bottom: none;
-        }
-        .option-label {
-            font-weight: 600;
-            color: #555;
-        }
-        .option-value {
-            color: #333;
-            text-align: right;
-            max-width: 60%;
-        }
-        .badge-yes {
-            background-color: #38a169;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-        .badge-no {
-            background-color: #e53e3e;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-        .badge-tech {
-            background-color: #3182ce;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        .action-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        .btn-edit {
-            background: #3182ce;
-        }
-        .btn-edit:hover {
-            background: #2c5282;
-        }
-        .btn-delete {
-            background: #e53e3e;
-        }
-        .btn-delete:hover {
-            background: #c53030;
-        }
-        .architecture-diagram {
-            margin-top: 10px;
-        }
-        .architecture-diagram img {
-            max-width: 100%;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        .architecture-diagram a {
-            color: #3182ce;
-            text-decoration: none;
-        }
-        .architecture-diagram a:hover {
-            text-decoration: underline;
-        }
-        .volume-number {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1f3a5f;
-        }
-        .description-text {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
-            font-style: italic;
-        }
-        .updated-info {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f7fafc;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #666;
-        }
-    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -138,7 +13,7 @@
             <li><a href="/dashboard">Dashboard</a></li>
             <li><a href="/incidents-list">Incidents</a></li>
             <li><a href="/search">Search</a></li>
-            <li><a href="/bank-options" class="active">Bank Options</a></li>
+            <li><a href="/bank-options" class="active">Bank Infrastructure</a></li>
         </ul>
         <div class="navbar-user">
             <span>{{ user.name }} ({{ user.role }})</span>
@@ -147,23 +22,28 @@
     </nav>
 
     <div class="container">
-        <h1>Bank Options</h1>
+        <div class="page-header">
+            <h1>Bank Infrastructure Details</h1>
+        </div>
 
         <div class="bank-selector">
-            <label for="bank-select"><strong>Select Bank:</strong></label>
-            <select id="bank-select" onchange="loadBankOptions()">
+            <label for="bank-select">Select Bank:</label>
+            <select id="bank-select" onchange="loadBankOptions()" class="form-select" style="width: auto; min-width: 280px;">
                 <option value="">-- Select a Bank --</option>
             </select>
             {% if user.role == 'ADMIN' %}
-            <button onclick="editBankOption()" class="btn btn-edit" id="btn-edit" style="display:none;">Edit</button>
-            <button onclick="deleteBankOption()" class="btn btn-delete" id="btn-delete" style="display:none;">Delete</button>
-            <button onclick="createBankOption()" class="btn btn-success" id="btn-create" style="display:none;">Create Configuration</button>
+            <div class="action-buttons" style="margin-top: 0;">
+                <button onclick="editBankOption()" class="btn btn-edit" id="btn-edit" style="display:none;">Edit Configuration</button>
+                <button onclick="deleteBankOption()" class="btn btn-danger" id="btn-delete" style="display:none;">Delete</button>
+                <button onclick="createBankOption()" class="btn btn-success" id="btn-create" style="display:none;">Create Configuration</button>
+            </div>
             {% endif %}
         </div>
 
         <div id="options-content">
             <div class="no-data">
-                <h3>Select a bank to view its configuration</h3>
+                <h3>Select a bank to view its infrastructure details</h3>
+                <p>Choose a bank from the dropdown above to view its technical configuration, server specifications, and infrastructure information.</p>
             </div>
         </div>
     </div>
@@ -185,7 +65,6 @@
                     select.appendChild(option);
                 });
 
-                // Check URL for bank_id parameter
                 const urlParams = new URLSearchParams(window.location.search);
                 const bankIdParam = urlParams.get('bank_id');
                 if (bankIdParam) {
@@ -204,7 +83,8 @@
             if (!bankId) {
                 document.getElementById('options-content').innerHTML = `
                     <div class="no-data">
-                        <h3>Select a bank to view its configuration</h3>
+                        <h3>Select a bank to view its infrastructure details</h3>
+                        <p>Choose a bank from the dropdown above to view its technical configuration, server specifications, and infrastructure information.</p>
                     </div>
                 `;
                 hideButtons();
@@ -214,7 +94,7 @@
             currentBankId = bankId;
 
             try {
-                const response = await fetch(`/bank-options/${bankId}`);
+                const response = await fetch(`/api/bank-options/${bankId}`);
                 const data = await response.json();
 
                 currentBankOption = data;
@@ -223,7 +103,7 @@
                     document.getElementById('options-content').innerHTML = `
                         <div class="no-data">
                             <h3>No configuration found for ${data.bank_name}</h3>
-                            <p>Click "Create Configuration" to add technical details for this bank.</p>
+                            <p>Click "Create Configuration" to add technical infrastructure details for this bank.</p>
                         </div>
                     `;
                     showCreateButton();
@@ -237,7 +117,8 @@
                 console.error('Error loading bank options:', error);
                 document.getElementById('options-content').innerHTML = `
                     <div class="no-data">
-                        <h3>Error loading bank options</h3>
+                        <h3>Error loading bank configuration</h3>
+                        <p>Please try again or contact support.</p>
                     </div>
                 `;
             }
@@ -250,126 +131,314 @@
             };
 
             const yesNo = (val) => val ? '<span class="badge-yes">Yes</span>' : '<span class="badge-no">No</span>';
+            const displayValue = (val) => val || 'N/A';
 
             const content = `
                 <div class="options-grid">
                     <!-- Transaction Volume Section -->
                     <div class="section-card">
                         <h3>Transaction Volume</h3>
-                        <div class="option-row">
-                            <span class="option-label">Per Day</span>
-                            <span class="option-value volume-number">${formatNumber(data.transaction_volume_per_day)}</span>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">Per Month</span>
-                            <span class="option-value volume-number">${formatNumber(data.transaction_volume_per_month)}</span>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Daily Volume</span>
+                                <span class="option-value volume-number">${formatNumber(data.transaction_volume_per_day)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Monthly Volume</span>
+                                <span class="option-value volume-number">${formatNumber(data.transaction_volume_per_month)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Peak TPS</span>
+                                <span class="option-value volume-number">${formatNumber(data.peak_tps)}</span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- App Server Section -->
                     <div class="section-card">
-                        <h3>Application Server</h3>
-                        <div class="option-row">
-                            <span class="option-label">Number of Servers</span>
-                            <span class="option-value">${formatNumber(data.number_of_app_servers)}</span>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">Server Type</span>
-                            <span class="option-value">${data.app_server_type || 'N/A'}</span>
+                        <h3>Application Servers</h3>
+                        <div class="section-card-body">
+                            <div class="server-card">
+                                <div class="server-card-header">
+                                    <span class="server-count">${formatNumber(data.number_of_app_servers)}</span>
+                                    <span class="server-type">${displayValue(data.app_server_type)}</span>
+                                </div>
+                                <div class="server-specs">
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.app_server_cpu)}</span>
+                                        <span class="spec-label">CPU</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.app_server_memory)}</span>
+                                        <span class="spec-label">Memory</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.app_server_os)}</span>
+                                        <span class="spec-label">Operating System</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Database Section -->
                     <div class="section-card">
-                        <h3>Database</h3>
-                        <div class="option-row">
-                            <span class="option-label">Database Type</span>
-                            <span class="option-value">${data.db_type || 'N/A'}</span>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">Number of Instances</span>
-                            <span class="option-value">${formatNumber(data.number_of_db_instances)}</span>
-                        </div>
-                    </div>
-
-                    <!-- Developer Contacts Section -->
-                    <div class="section-card">
-                        <h3>Developer Contacts</h3>
-                        <div class="option-row">
-                            <span class="option-label">Implementation Developer</span>
-                            <span class="option-value">${data.implementation_developer_name || 'N/A'}</span>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">DB Developer</span>
-                            <span class="option-value">${data.db_developer_name || 'N/A'}</span>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">DB Developer Contact</span>
-                            <span class="option-value">${data.db_developer_contact || 'N/A'}</span>
+                        <h3>Database Servers</h3>
+                        <div class="section-card-body">
+                            <div class="server-card">
+                                <div class="server-card-header">
+                                    <span class="server-count">${formatNumber(data.number_of_db_instances)}</span>
+                                    <span class="server-type">${displayValue(data.db_type)}</span>
+                                </div>
+                                <div class="server-specs">
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.db_server_cpu)}</span>
+                                        <span class="spec-label">CPU</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.db_server_memory)}</span>
+                                        <span class="spec-label">Memory</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.db_server_storage)}</span>
+                                        <span class="spec-label">Storage</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.db_server_os)}</span>
+                                        <span class="spec-label">Operating System</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Aerospike Section -->
                     <div class="section-card">
-                        <h3>Aerospike</h3>
-                        <div class="option-row">
-                            <span class="option-label">Enabled</span>
-                            <span class="option-value">${yesNo(data.aerospike_enabled)}</span>
+                        <h3>Aerospike Cache</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Enabled</span>
+                                <span class="option-value">${yesNo(data.aerospike_enabled)}</span>
+                            </div>
+                            ${data.aerospike_enabled ? `
+                            <div class="option-row">
+                                <span class="option-label">Version</span>
+                                <span class="option-value"><span class="badge-tech">${displayValue(data.aerospike_version)}</span></span>
+                            </div>
+                            <div class="server-card">
+                                <div class="server-card-header">
+                                    <span class="server-count">${formatNumber(data.number_of_aerospike_servers)}</span>
+                                    <span class="server-type">Servers</span>
+                                </div>
+                                <div class="server-specs">
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.aerospike_server_cpu)}</span>
+                                        <span class="spec-label">CPU</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.aerospike_server_memory)}</span>
+                                        <span class="spec-label">Memory</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.aerospike_server_storage)}</span>
+                                        <span class="spec-label">Storage</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-value">${displayValue(data.aerospike_server_os)}</span>
+                                        <span class="spec-label">OS</span>
+                                    </div>
+                                </div>
+                            </div>
+                            ${data.aerospike_description ? `<div class="description-text">${data.aerospike_description}</div>` : ''}
+                            ` : ''}
                         </div>
-                        ${data.aerospike_enabled ? `
-                        <div class="option-row">
-                            <span class="option-label">Version</span>
-                            <span class="option-value">${data.aerospike_version || 'N/A'}</span>
-                        </div>
-                        ${data.aerospike_description ? `
-                        <div class="description-text">${data.aerospike_description}</div>
-                        ` : ''}
-                        ` : ''}
                     </div>
 
                     <!-- Redis Section -->
                     <div class="section-card">
-                        <h3>Redis</h3>
-                        <div class="option-row">
-                            <span class="option-label">Enabled</span>
-                            <span class="option-value">${yesNo(data.redis_enabled)}</span>
+                        <h3>Redis Cache</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Enabled</span>
+                                <span class="option-value">${yesNo(data.redis_enabled)}</span>
+                            </div>
+                            ${data.redis_enabled ? `
+                            <div class="option-row">
+                                <span class="option-label">Version</span>
+                                <span class="option-value"><span class="badge-tech">${displayValue(data.redis_version)}</span></span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Number of Servers</span>
+                                <span class="option-value">${formatNumber(data.number_of_redis_servers)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Memory per Server</span>
+                                <span class="option-value">${displayValue(data.redis_server_memory)}</span>
+                            </div>
+                            ${data.redis_description ? `<div class="description-text">${data.redis_description}</div>` : ''}
+                            ` : ''}
                         </div>
-                        ${data.redis_enabled && data.redis_description ? `
-                        <div class="description-text">${data.redis_description}</div>
-                        ` : ''}
                     </div>
 
-                    <!-- Recon Section -->
+                    <!-- Load Balancer Section -->
                     <div class="section-card">
-                        <h3>Reconciliation (Recon)</h3>
-                        <div class="option-row">
-                            <span class="option-label">Enabled</span>
-                            <span class="option-value">${yesNo(data.recon_enabled)}</span>
+                        <h3>Load Balancer</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Type</span>
+                                <span class="option-value">${displayValue(data.load_balancer_type)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Count</span>
+                                <span class="option-value">${formatNumber(data.number_of_load_balancers)}</span>
+                            </div>
                         </div>
-                        ${data.recon_enabled ? `
-                        <div class="option-row">
-                            <span class="option-label">Technology</span>
-                            <span class="option-value">
-                                ${data.recon_technology ? `<span class="badge-tech">${data.recon_technology}</span>` : 'N/A'}
-                            </span>
+                    </div>
+
+                    <!-- Monitoring & Logging Section -->
+                    <div class="section-card">
+                        <h3>Monitoring & Logging</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Monitoring Tool</span>
+                                <span class="option-value">${data.monitoring_tool ? `<span class="badge-tech">${data.monitoring_tool}</span>` : 'N/A'}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Logging Tool</span>
+                                <span class="option-value">${data.logging_tool ? `<span class="badge-tech">${data.logging_tool}</span>` : 'N/A'}</span>
+                            </div>
                         </div>
-                        ` : ''}
+                    </div>
+
+                    <!-- Network & Security Section -->
+                    <div class="section-card">
+                        <h3>Network & Security</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Network Zone</span>
+                                <span class="option-value">${displayValue(data.network_zone)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">WAF Enabled</span>
+                                <span class="option-value">${yesNo(data.waf_enabled)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">SSL Certificate Expiry</span>
+                                <span class="option-value">${data.ssl_certificate_expiry ? new Date(data.ssl_certificate_expiry).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Environment Section -->
+                    <div class="section-card">
+                        <h3>Environment & DR</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Deployment Region</span>
+                                <span class="option-value">${displayValue(data.deployment_region)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Data Center</span>
+                                <span class="option-value">${displayValue(data.data_center)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">Disaster Recovery</span>
+                                <span class="option-value">${yesNo(data.dr_enabled)}</span>
+                            </div>
+                            ${data.dr_enabled && data.dr_location ? `
+                            <div class="option-row">
+                                <span class="option-label">DR Location</span>
+                                <span class="option-value">${data.dr_location}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- SLA Section -->
+                    <div class="section-card">
+                        <h3>SLA & Recovery</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Uptime SLA</span>
+                                <span class="option-value volume-number">${displayValue(data.uptime_sla)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">RTO (Recovery Time)</span>
+                                <span class="option-value">${displayValue(data.rto)}</span>
+                            </div>
+                            <div class="option-row">
+                                <span class="option-label">RPO (Recovery Point)</span>
+                                <span class="option-value">${displayValue(data.rpo)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reconciliation Section -->
+                    <div class="section-card">
+                        <h3>Reconciliation</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Enabled</span>
+                                <span class="option-value">${yesNo(data.recon_enabled)}</span>
+                            </div>
+                            ${data.recon_enabled ? `
+                            <div class="option-row">
+                                <span class="option-label">Technology</span>
+                                <span class="option-value">${data.recon_technology ? `<span class="badge-tech">${data.recon_technology}</span>` : 'N/A'}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Team Contacts Section -->
+                    <div class="section-card">
+                        <h3>Team Contacts</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Implementation Developer</span>
+                                <span class="option-value">${displayValue(data.implementation_developer_name)}</span>
+                            </div>
+                            ${data.implementation_developer_contact ? `
+                            <div class="option-row">
+                                <span class="option-label">Contact</span>
+                                <span class="option-value">${data.implementation_developer_contact}</span>
+                            </div>
+                            ` : ''}
+                            <div class="option-row">
+                                <span class="option-label">DB Developer</span>
+                                <span class="option-value">${displayValue(data.db_developer_name)}</span>
+                            </div>
+                            ${data.db_developer_contact ? `
+                            <div class="option-row">
+                                <span class="option-label">DB Contact</span>
+                                <span class="option-value">${data.db_developer_contact}</span>
+                            </div>
+                            ` : ''}
+                            ${data.ops_team_contact ? `
+                            <div class="option-row">
+                                <span class="option-label">Ops Team</span>
+                                <span class="option-value">${data.ops_team_contact}</span>
+                            </div>
+                            ` : ''}
+                        </div>
                     </div>
 
                     <!-- Architecture Diagram Section -->
                     <div class="section-card">
                         <h3>Architecture Diagram</h3>
-                        ${data.architecture_diagram_url ? `
-                        <div class="architecture-diagram">
-                            <a href="${data.architecture_diagram_url}" target="_blank">View Architecture Diagram</a>
+                        <div class="section-card-body">
+                            ${data.architecture_diagram_url ? `
+                            <div class="architecture-diagram">
+                                <a href="${data.architecture_diagram_url}" target="_blank">View Architecture Diagram</a>
+                            </div>
+                            ` : '<p class="text-muted">No architecture diagram available</p>'}
                         </div>
-                        ` : '<p>No architecture diagram available</p>'}
                     </div>
                 </div>
 
                 <div class="updated-info">
                     Last updated: ${data.updated_at ? new Date(data.updated_at).toLocaleString() : 'N/A'}
-                    ${data.updated_by_name ? ` by ${data.updated_by_name}` : ''}
+                    ${data.updated_by_name ? ` by <strong>${data.updated_by_name}</strong>` : ''}
                 </div>
             `;
 
@@ -377,21 +446,30 @@
         }
 
         function hideButtons() {
-            document.getElementById('btn-edit')?.style && (document.getElementById('btn-edit').style.display = 'none');
-            document.getElementById('btn-delete')?.style && (document.getElementById('btn-delete').style.display = 'none');
-            document.getElementById('btn-create')?.style && (document.getElementById('btn-create').style.display = 'none');
+            const btnEdit = document.getElementById('btn-edit');
+            const btnDelete = document.getElementById('btn-delete');
+            const btnCreate = document.getElementById('btn-create');
+            if (btnEdit) btnEdit.style.display = 'none';
+            if (btnDelete) btnDelete.style.display = 'none';
+            if (btnCreate) btnCreate.style.display = 'none';
         }
 
         function showCreateButton() {
-            document.getElementById('btn-edit')?.style && (document.getElementById('btn-edit').style.display = 'none');
-            document.getElementById('btn-delete')?.style && (document.getElementById('btn-delete').style.display = 'none');
-            document.getElementById('btn-create')?.style && (document.getElementById('btn-create').style.display = 'inline-block');
+            const btnEdit = document.getElementById('btn-edit');
+            const btnDelete = document.getElementById('btn-delete');
+            const btnCreate = document.getElementById('btn-create');
+            if (btnEdit) btnEdit.style.display = 'none';
+            if (btnDelete) btnDelete.style.display = 'none';
+            if (btnCreate) btnCreate.style.display = 'inline-flex';
         }
 
         function showEditDeleteButtons() {
-            document.getElementById('btn-edit')?.style && (document.getElementById('btn-edit').style.display = 'inline-block');
-            document.getElementById('btn-delete')?.style && (document.getElementById('btn-delete').style.display = 'inline-block');
-            document.getElementById('btn-create')?.style && (document.getElementById('btn-create').style.display = 'none');
+            const btnEdit = document.getElementById('btn-edit');
+            const btnDelete = document.getElementById('btn-delete');
+            const btnCreate = document.getElementById('btn-create');
+            if (btnEdit) btnEdit.style.display = 'inline-flex';
+            if (btnDelete) btnDelete.style.display = 'inline-flex';
+            if (btnCreate) btnCreate.style.display = 'none';
         }
 
         function editBankOption() {
@@ -414,20 +492,20 @@
             }
 
             try {
-                const response = await fetch(`/bank-options/${currentBankId}`, {
+                const response = await fetch(`/api/bank-options/${currentBankId}`, {
                     method: 'DELETE'
                 });
 
                 if (response.ok) {
-                    alert('Bank option deleted successfully');
+                    alert('Bank configuration deleted successfully');
                     loadBankOptions();
                 } else {
                     const error = await response.json();
-                    alert('Error: ' + (error.detail || 'Failed to delete bank option'));
+                    alert('Error: ' + (error.detail || 'Failed to delete bank configuration'));
                 }
             } catch (error) {
                 console.error('Error deleting bank option:', error);
-                alert('Error deleting bank option');
+                alert('Error deleting bank configuration');
             }
         }
 

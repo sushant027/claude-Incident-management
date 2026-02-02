@@ -6,22 +6,58 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from config import settings
 
-# Import Gemini only if available
+# Import Gemini using new google.genai package
+GEMINI_AVAILABLE = False
+genai_client = None
+
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
     GEMINI_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
+    # Fall back to deprecated package if new one is not available
+    try:
+        import google.generativeai as genai_legacy
+        GEMINI_AVAILABLE = True
+        genai_client = "legacy"
+    except ImportError:
+        pass
+
 
 class AIService:
     """AI service for similar incident detection and report generation"""
-    
+
     def __init__(self):
         self.enabled = settings.ai_enabled and GEMINI_AVAILABLE
+        self.client = None
+        self.model_name = settings.GEMINI_MODEL
+
         if self.enabled:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
-    
+            if genai_client == "legacy":
+                # Use legacy package
+                import google.generativeai as genai_legacy
+                genai_legacy.configure(api_key=settings.GEMINI_API_KEY)
+                self.client = genai_legacy.GenerativeModel(self.model_name)
+                self.use_legacy = True
+            else:
+                # Use new google.genai package
+                from google import genai
+                self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                self.use_legacy = False
+
+    def _generate_content(self, prompt: str) -> str:
+        """Generate content using the appropriate API"""
+        if self.use_legacy:
+            response = self.client.generate_content(prompt)
+            return response.text.strip()
+        else:
+            # New API format
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
+            return response.text.strip()
+
     def find_similar_incidents(
         self,
         title: str,
@@ -39,7 +75,7 @@ class AIService:
                 "similarity_reasons": {},
                 "recommendation_text": "AI service not available. Please configure GEMINI_API_KEY."
             }
-        
+
         try:
             # Prepare historical incidents context
             incidents_context = "\n\n".join([
@@ -51,7 +87,7 @@ class AIService:
                 f"Status: {inc['status']}"
                 for inc in historical_incidents[:20]  # Limit to 20 for context
             ])
-            
+
             prompt = f"""You are an expert incident analyst for a banking system.
 
 Current Incident:
@@ -69,7 +105,7 @@ Tasks:
    - Error patterns
    - Exception traces
    - Problem description
-   
+
 2. For each similar incident, explain WHY it's similar (1-2 sentences)
 
 3. Provide a brief recommendation (2-3 sentences) based on historical resolutions
@@ -84,25 +120,24 @@ Response format (JSON):
     "recommendation": "Your advisory recommendation text here"
 }}
 """
-            
-            response = self.model.generate_content(prompt)
-            result_text = response.text.strip()
-            
+
+            result_text = self._generate_content(prompt)
+
             # Try to parse JSON from response
             # Sometimes AI wraps in ```json ... ```
             if "```json" in result_text:
                 result_text = result_text.split("```json")[1].split("```")[0].strip()
             elif "```" in result_text:
                 result_text = result_text.split("```")[1].split("```")[0].strip()
-            
+
             result = json.loads(result_text)
-            
+
             return {
                 "similar_incidents": result.get("similar_incident_ids", []),
                 "similarity_reasons": result.get("similarity_reasons", {}),
                 "recommendation_text": result.get("recommendation", "No recommendation provided")
             }
-            
+
         except Exception as e:
             print(f"AI error: {str(e)}")
             return {
@@ -110,7 +145,7 @@ Response format (JSON):
                 "similarity_reasons": {},
                 "recommendation_text": f"AI analysis failed: {str(e)}"
             }
-    
+
     def generate_bank_report(
         self,
         bank_name: str,
@@ -122,13 +157,13 @@ Response format (JSON):
         """
         if not self.enabled:
             return self._generate_fallback_bank_report(bank_name, incidents, summary_stats)
-        
+
         try:
             incidents_summary = "\n".join([
                 f"- #{inc['id']}: {inc['severity']} - {inc['title']} ({inc['status']})"
                 for inc in incidents[:50]  # Limit for context
             ])
-            
+
             prompt = f"""Generate an executive HTML report for {bank_name}'s incident management.
 
 Statistics:
@@ -156,29 +191,28 @@ Create a professional, clean HTML report with:
 
 Return ONLY the HTML code, no explanation.
 """
-            
-            response = self.model.generate_content(prompt)
-            html = response.text.strip()
-            
+
+            html = self._generate_content(prompt)
+
             # Clean up markdown code blocks if present
             if "```html" in html:
                 html = html.split("```html")[1].split("```")[0].strip()
             elif "```" in html:
                 html = html.split("```")[1].split("```")[0].strip()
-            
+
             return html
-            
+
         except Exception as e:
             print(f"AI report generation error: {str(e)}")
             return self._generate_fallback_bank_report(bank_name, incidents, summary_stats)
-    
+
     def generate_incident_report(self, incident: Dict[str, Any]) -> str:
         """
         Generate detailed HTML report for a specific incident
         """
         if not self.enabled:
             return self._generate_fallback_incident_report(incident)
-        
+
         try:
             prompt = f"""Generate a detailed executive HTML report for this incident:
 
@@ -201,21 +235,20 @@ Create a professional incident report with:
 
 Return ONLY the HTML code, no explanation.
 """
-            
-            response = self.model.generate_content(prompt)
-            html = response.text.strip()
-            
+
+            html = self._generate_content(prompt)
+
             if "```html" in html:
                 html = html.split("```html")[1].split("```")[0].strip()
             elif "```" in html:
                 html = html.split("```")[1].split("```")[0].strip()
-            
+
             return html
-            
+
         except Exception as e:
             print(f"AI incident report error: {str(e)}")
             return self._generate_fallback_incident_report(incident)
-    
+
     def _generate_fallback_bank_report(
         self, bank_name: str, incidents: List[Dict], stats: Dict
     ) -> str:
@@ -238,7 +271,7 @@ Return ONLY the HTML code, no explanation.
 </head>
 <body>
     <h1>{bank_name} - Incident Management Report</h1>
-    
+
     <div class="stats">
         <div class="stat-box">
             <div class="stat-value">{stats.get('total', 0)}</div>
@@ -257,7 +290,7 @@ Return ONLY the HTML code, no explanation.
             <div>Critical (P1)</div>
         </div>
     </div>
-    
+
     <h2>Recent Incidents</h2>
     <table>
         <tr>
@@ -271,7 +304,7 @@ Return ONLY the HTML code, no explanation.
 </body>
 </html>
 """
-    
+
     def _generate_fallback_incident_report(self, incident: Dict) -> str:
         """Fallback incident report without AI"""
         return f"""
@@ -287,7 +320,7 @@ Return ONLY the HTML code, no explanation.
 </head>
 <body>
     <h1>Incident Report #{incident['id']}</h1>
-    
+
     <div class="section">
         <p><span class="label">Title:</span> {incident['title']}</p>
         <p><span class="label">Severity:</span> {incident['severity']}</p>
@@ -295,7 +328,7 @@ Return ONLY the HTML code, no explanation.
         <p><span class="label">Service:</span> {incident['service_name']}</p>
         <p><span class="label">Created:</span> {incident['created_at']}</p>
     </div>
-    
+
     <div class="section">
         <p class="label">Description:</p>
         <p>{incident['description']}</p>

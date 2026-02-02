@@ -12,8 +12,8 @@
         <ul class="navbar-menu">
             <li><a href="/dashboard">Dashboard</a></li>
             <li><a href="/incidents-list">Incidents</a></li>
-            <li><a href="/search">Search</a></li>
-            <li><a href="/bank-options">Bank Options</a></li>
+            <li><a href="/search" class="active">Search</a></li>
+            <li><a href="/bank-options">Bank Infrastructure</a></li>
         </ul>
         <div class="navbar-user">
             <span>{{ user.name }} ({{ user.role }})</span>
@@ -22,61 +22,78 @@
     </nav>
 
     <div class="container-wide">
-        <h1>Search Incidents</h1>
-
-        <div class="card">
-            <div class="card-header">Search Filters</div>
-            <form id="search-form">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Title</label>
-                        <input type="text" name="title" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Service Name</label>
-                        <input type="text" name="service_name" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Severity</label>
-                        <select name="severity" class="form-select">
-                            <option value="">All</option>
-                            <option value="P1">P1</option>
-                            <option value="P2">P2</option>
-                            <option value="P3">P3</option>
-                            <option value="P4">P4</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="">All</option>
-                            <option value="OPEN">Open</option>
-                            <option value="ACKNOWLEDGED">Acknowledged</option>
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="RESOLVED">Resolved</option>
-                            <option value="CLOSED">Closed</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Bank</label>
-                        <select name="bank_id" class="form-select" id="bank-select">
-                            <option value="">All</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Description Contains</label>
-                        <input type="text" name="description" class="form-input">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Search</button>
-                <button type="button" onclick="resetForm()" class="btn btn-secondary">Reset</button>
-            </form>
+        <div class="page-header">
+            <h1>Search Incidents</h1>
         </div>
 
         <div class="card">
-            <div class="card-header">Search Results</div>
-            <div id="results-info" class="mb-1"></div>
-            <table class="table">
+            <div class="card-header">Search Filters</div>
+            <div class="card-body">
+                <form id="search-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Title</label>
+                            <input type="text" name="title" class="form-input" placeholder="Search by title...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Service Name</label>
+                            <input type="text" name="service_name" class="form-input" placeholder="e.g., Payment Gateway">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Severity</label>
+                            <select name="severity" class="form-select">
+                                <option value="">All Severities</option>
+                                <option value="P1">P1 - Critical</option>
+                                <option value="P2">P2 - High</option>
+                                <option value="P3">P3 - Medium</option>
+                                <option value="P4">P4 - Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Statuses</option>
+                                <option value="OPEN">Open</option>
+                                <option value="ACKNOWLEDGED">Acknowledged</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="RESOLVED">Resolved</option>
+                                <option value="CLOSED">Closed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Bank</label>
+                            <select name="bank_id" class="form-select" id="bank-select">
+                                <option value="">All Banks</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Description Contains</label>
+                            <input type="text" name="description" class="form-input" placeholder="Search in description...">
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mt-2">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        <button type="button" onclick="resetForm()" class="btn btn-outline">Reset Filters</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>Search Results</span>
+                <span id="results-info" class="text-muted" style="font-weight: normal; font-size: 0.875rem;"></span>
+            </div>
+            <div id="loading-state" class="p-3 text-center text-muted" style="display: none;">
+                <div class="spinner"></div>
+                <p class="mt-2">Searching...</p>
+            </div>
+            <div id="initial-state" class="p-3 text-center text-muted">
+                <p>Use the filters above to search for incidents.</p>
+            </div>
+            <table class="table" id="results-table" style="display: none;">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -84,52 +101,105 @@
                         <th>Severity</th>
                         <th>Status</th>
                         <th>Service</th>
+                        <th>Bank</th>
                         <th>Created</th>
                     </tr>
                 </thead>
                 <tbody id="results-tbody"></tbody>
             </table>
+            <div id="no-results" class="p-3 text-center text-muted" style="display: none;">
+                <h3>No incidents found</h3>
+                <p>Try adjusting your search filters.</p>
+            </div>
         </div>
     </div>
 
     <script>
         async function loadBanks() {
-            const response = await fetch('/banks');
-            const banks = await response.json();
-            const select = document.getElementById('bank-select');
-            select.innerHTML = '<option value="">All</option>' + 
-                banks.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            try {
+                const response = await fetch('/banks');
+                const banks = await response.json();
+                const select = document.getElementById('bank-select');
+                select.innerHTML = '<option value="">All Banks</option>' +
+                    banks.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading banks:', error);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatStatus(status) {
+            return status.replace(/_/g, ' ');
         }
 
         document.getElementById('search-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
+            // Show loading state
+            document.getElementById('initial-state').style.display = 'none';
+            document.getElementById('loading-state').style.display = 'block';
+            document.getElementById('results-table').style.display = 'none';
+            document.getElementById('no-results').style.display = 'none';
+            document.getElementById('results-info').textContent = '';
+
             const formData = new FormData(e.target);
             const params = new URLSearchParams();
-            
+
             for (let [key, value] of formData.entries()) {
                 if (value) params.append(key, value);
             }
-            
-            const response = await fetch(`/incidents/search/advanced?${params}`);
-            const data = await response.json();
-            
-            document.getElementById('results-info').textContent = `Found ${data.total} incidents`;
-            
-            const tbody = document.getElementById('results-tbody');
-            if (data.incidents.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center">No incidents found</td></tr>';
-            } else {
-                tbody.innerHTML = data.incidents.map(inc => `
-                    <tr onclick="window.location.href='/incidents-detail/${inc.id}'" style="cursor: pointer;">
-                        <td>#${inc.id}</td>
-                        <td>${inc.title}</td>
-                        <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
-                        <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${inc.status.replace('_', ' ')}</span></td>
-                        <td>${inc.service_name}</td>
-                        <td>${new Date(inc.created_at).toLocaleString()}</td>
-                    </tr>
-                `).join('');
+
+            try {
+                const response = await fetch(`/incidents/search/advanced?${params}`);
+                const data = await response.json();
+
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('results-info').textContent = ` - Found ${data.total} incident${data.total !== 1 ? 's' : ''}`;
+
+                const tbody = document.getElementById('results-tbody');
+
+                if (data.incidents && data.incidents.length > 0) {
+                    document.getElementById('results-table').style.display = 'table';
+                    tbody.innerHTML = data.incidents.map(inc => `
+                        <tr onclick="window.location.href='/incidents-detail/${inc.id}'" style="cursor: pointer;">
+                            <td><a href="/incidents-detail/${inc.id}">#${inc.id}</a></td>
+                            <td>${escapeHtml(inc.title)}</td>
+                            <td><span class="badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span></td>
+                            <td><span class="badge badge-${inc.status.toLowerCase().replace('_', '-')}">${formatStatus(inc.status)}</span></td>
+                            <td>${escapeHtml(inc.service_name)}</td>
+                            <td>${escapeHtml(inc.bank_name || 'N/A')}</td>
+                            <td>${formatDate(inc.created_at)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('no-results').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error searching:', error);
+                document.getElementById('loading-state').style.display = 'none';
+                document.getElementById('no-results').style.display = 'block';
+                document.getElementById('no-results').innerHTML = `
+                    <h3 class="text-danger">Error searching</h3>
+                    <p>Please try again.</p>
+                `;
             }
         });
 
@@ -137,6 +207,10 @@
             document.getElementById('search-form').reset();
             document.getElementById('results-tbody').innerHTML = '';
             document.getElementById('results-info').textContent = '';
+            document.getElementById('results-table').style.display = 'none';
+            document.getElementById('no-results').style.display = 'none';
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('initial-state').style.display = 'block';
         }
 
         async function logout() {
