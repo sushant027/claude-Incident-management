@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank Options - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         .bank-selector {
             margin-bottom: 20px;
@@ -129,6 +130,54 @@
             font-size: 12px;
             color: #666;
         }
+        /* Chart styles */
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-card h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1f3a5f;
+            color: #1f3a5f;
+        }
+        .chart-container {
+            position: relative;
+            height: 220px;
+            width: 100%;
+        }
+        .volume-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .volume-stat {
+            text-align: center;
+        }
+        .volume-label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .volume-value {
+            display: block;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f3a5f;
+        }
     </style>
 </head>
 <body>
@@ -249,22 +298,47 @@
                 return num.toLocaleString();
             };
 
+            const formatShortNumber = (num) => {
+                if (num === null || num === undefined) return 'N/A';
+                if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                return num.toString();
+            };
+
             const yesNo = (val) => val ? '<span class="badge-yes">Yes</span>' : '<span class="badge-no">No</span>';
 
             const content = `
-                <div class="options-grid">
-                    <!-- Transaction Volume Section -->
-                    <div class="section-card">
+                <!-- Transaction Volume Charts Section -->
+                <div class="chart-row">
+                    <div class="chart-card">
                         <h3>Transaction Volume</h3>
-                        <div class="option-row">
-                            <span class="option-label">Per Day</span>
-                            <span class="option-value volume-number">${formatNumber(data.transaction_volume_per_day)}</span>
+                        <div class="chart-container">
+                            <canvas id="volumeChart"></canvas>
                         </div>
-                        <div class="option-row">
-                            <span class="option-label">Per Month</span>
-                            <span class="option-value volume-number">${formatNumber(data.transaction_volume_per_month)}</span>
+                        <div class="volume-stats">
+                            <div class="volume-stat">
+                                <span class="volume-label">Daily Volume</span>
+                                <span class="volume-value">${formatNumber(data.transaction_volume_per_day)}</span>
+                            </div>
+                            <div class="volume-stat">
+                                <span class="volume-label">Monthly Volume</span>
+                                <span class="volume-value">${formatNumber(data.transaction_volume_per_month)}</span>
+                            </div>
+                            <div class="volume-stat">
+                                <span class="volume-label">Peak TPS</span>
+                                <span class="volume-value">${data.transaction_volume_per_day ? Math.round(data.transaction_volume_per_day / 86400 * 2).toLocaleString() : 'N/A'}</span>
+                            </div>
                         </div>
                     </div>
+                    <div class="chart-card">
+                        <h3>Infrastructure Overview</h3>
+                        <div class="chart-container">
+                            <canvas id="infraChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="options-grid">
 
                     <!-- App Server Section -->
                     <div class="section-card">
@@ -374,6 +448,144 @@
             `;
 
             document.getElementById('options-content').innerHTML = content;
+
+            // Render charts after content is inserted
+            renderCharts(data);
+        }
+
+        function renderCharts(data) {
+            // Destroy existing charts if any
+            if (window.volumeChartInstance) {
+                window.volumeChartInstance.destroy();
+            }
+            if (window.infraChartInstance) {
+                window.infraChartInstance.destroy();
+            }
+
+            // Transaction Volume Bar Chart
+            const volumeCtx = document.getElementById('volumeChart');
+            if (volumeCtx && (data.transaction_volume_per_day || data.transaction_volume_per_month)) {
+                window.volumeChartInstance = new Chart(volumeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Daily', 'Weekly (Est.)', 'Monthly'],
+                        datasets: [{
+                            label: 'Transaction Volume',
+                            data: [
+                                data.transaction_volume_per_day || 0,
+                                (data.transaction_volume_per_day || 0) * 7,
+                                data.transaction_volume_per_month || 0
+                            ],
+                            backgroundColor: [
+                                'rgba(49, 130, 206, 0.8)',
+                                'rgba(56, 161, 105, 0.8)',
+                                'rgba(128, 90, 213, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(49, 130, 206, 1)',
+                                'rgba(56, 161, 105, 1)',
+                                'rgba(128, 90, 213, 1)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.y.toLocaleString() + ' transactions';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                                        if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
+                                        return value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else if (volumeCtx) {
+                volumeCtx.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">No transaction volume data available</div>';
+            }
+
+            // Infrastructure Doughnut Chart
+            const infraCtx = document.getElementById('infraChart');
+            if (infraCtx) {
+                const infraData = [];
+                const infraLabels = [];
+                const infraColors = [];
+
+                if (data.number_of_app_servers) {
+                    infraLabels.push('App Servers');
+                    infraData.push(data.number_of_app_servers);
+                    infraColors.push('rgba(49, 130, 206, 0.8)');
+                }
+                if (data.number_of_db_instances) {
+                    infraLabels.push('DB Instances');
+                    infraData.push(data.number_of_db_instances);
+                    infraColors.push('rgba(56, 161, 105, 0.8)');
+                }
+                if (data.aerospike_enabled) {
+                    infraLabels.push('Aerospike');
+                    infraData.push(1);
+                    infraColors.push('rgba(237, 137, 54, 0.8)');
+                }
+                if (data.redis_enabled) {
+                    infraLabels.push('Redis');
+                    infraData.push(1);
+                    infraColors.push('rgba(229, 62, 62, 0.8)');
+                }
+                if (data.recon_enabled) {
+                    infraLabels.push('Recon');
+                    infraData.push(1);
+                    infraColors.push('rgba(128, 90, 213, 0.8)');
+                }
+
+                if (infraData.length > 0) {
+                    window.infraChartInstance = new Chart(infraCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: infraLabels,
+                            datasets: [{
+                                data: infraData,
+                                backgroundColor: infraColors,
+                                borderWidth: 2,
+                                borderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        padding: 15,
+                                        usePointStyle: true
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    infraCtx.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">No infrastructure data available</div>';
+                }
+            }
         }
 
         function hideButtons() {
