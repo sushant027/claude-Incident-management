@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Incident Detail - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -38,7 +40,22 @@
         </div>
 
         <div class="card">
-            <div class="card-header">Timeline</div>
+            <div class="card-header">Incident Lifecycle</div>
+            <div class="lifecycle-summary" id="lifecycle-summary"></div>
+            <div class="chart-container" style="height: 120px; margin-top: 15px;">
+                <canvas id="lifecycle-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Timeline Chart</div>
+            <div class="chart-container" style="height: 250px;">
+                <canvas id="timeline-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Event Timeline</div>
             <div class="timeline" id="timeline"></div>
         </div>
 
@@ -51,6 +68,27 @@
     <script>
         const incidentId = {{ incident_id }};
         let incident = null;
+        let lifecycleChartInstance = null;
+        let timelineChartInstance = null;
+
+        // Color mapping for event types
+        const eventTypeColors = {
+            'CREATE': { bg: 'rgba(49, 130, 206, 0.8)', border: '#3182ce' },
+            'STATUS_CHANGE': { bg: 'rgba(56, 161, 105, 0.8)', border: '#38a169' },
+            'ASSIGNMENT': { bg: 'rgba(128, 90, 213, 0.8)', border: '#805ad5' },
+            'ESCALATION': { bg: 'rgba(237, 137, 54, 0.8)', border: '#ed8936' },
+            'COMMENT': { bg: 'rgba(113, 128, 150, 0.8)', border: '#718096' },
+            'AI_RECOMMENDATION': { bg: 'rgba(0, 184, 212, 0.8)', border: '#00b8d4' }
+        };
+
+        // Color mapping for status phases
+        const statusColors = {
+            'OPEN': '#e53e3e',
+            'ACKNOWLEDGED': '#ed8936',
+            'IN_PROGRESS': '#3182ce',
+            'RESOLVED': '#38a169',
+            'CLOSED': '#718096'
+        };
 
         async function loadIncident() {
             const response = await fetch(`/incidents/${incidentId}`);
@@ -73,8 +111,278 @@
             `;
 
             renderActions();
+            renderLifecycleSummary();
+            renderLifecycleChart();
+            renderTimelineChart(incident.timeline);
             renderTimeline(incident.timeline);
             renderAISimilar(incident.ai_similar);
+        }
+
+        function calculateDuration(start, end) {
+            if (!start) return null;
+            const endTime = end ? new Date(end) : new Date();
+            const startTime = new Date(start);
+            const diffMs = endTime - startTime;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h`;
+            if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m`;
+            return `${diffMins}m`;
+        }
+
+        function renderLifecycleSummary() {
+            const created = incident.created_at;
+            const acknowledged = incident.acknowledged_at;
+            const resolved = incident.resolved_at;
+            const closed = incident.closed_at;
+
+            const phases = [
+                { name: 'Time to Acknowledge', duration: calculateDuration(created, acknowledged), status: acknowledged ? 'completed' : (incident.status === 'OPEN' ? 'active' : 'skipped') },
+                { name: 'Time to Resolve', duration: calculateDuration(acknowledged || created, resolved), status: resolved ? 'completed' : (['ACKNOWLEDGED', 'IN_PROGRESS'].includes(incident.status) ? 'active' : (incident.status === 'OPEN' ? 'pending' : 'skipped')) },
+                { name: 'Time to Close', duration: calculateDuration(resolved, closed), status: closed ? 'completed' : (incident.status === 'RESOLVED' ? 'active' : 'pending') },
+                { name: 'Total Duration', duration: calculateDuration(created, closed || (resolved ? resolved : new Date())), status: 'info' }
+            ];
+
+            document.getElementById('lifecycle-summary').innerHTML = `
+                <div class="lifecycle-metrics">
+                    ${phases.map(phase => `
+                        <div class="lifecycle-metric ${phase.status}">
+                            <div class="metric-label">${phase.name}</div>
+                            <div class="metric-value">${phase.duration || '--'}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderLifecycleChart() {
+            const ctx = document.getElementById('lifecycle-chart').getContext('2d');
+
+            // Destroy existing chart if present
+            if (lifecycleChartInstance) {
+                lifecycleChartInstance.destroy();
+            }
+
+            const created = new Date(incident.created_at);
+            const now = new Date();
+
+            // Calculate phase durations in minutes for better visualization
+            const phases = [];
+            const statusOrder = ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+
+            let lastTime = created;
+
+            // OPEN phase
+            const ackTime = incident.acknowledged_at ? new Date(incident.acknowledged_at) : null;
+            if (ackTime) {
+                phases.push({ status: 'OPEN', start: created, end: ackTime });
+                lastTime = ackTime;
+            } else if (incident.status === 'OPEN') {
+                phases.push({ status: 'OPEN', start: created, end: now });
+            }
+
+            // ACKNOWLEDGED / IN_PROGRESS phase
+            const resolvedTime = incident.resolved_at ? new Date(incident.resolved_at) : null;
+            if (ackTime) {
+                if (resolvedTime) {
+                    phases.push({ status: 'IN_PROGRESS', start: ackTime, end: resolvedTime });
+                    lastTime = resolvedTime;
+                } else if (['ACKNOWLEDGED', 'IN_PROGRESS'].includes(incident.status)) {
+                    phases.push({ status: 'IN_PROGRESS', start: ackTime, end: now });
+                }
+            }
+
+            // RESOLVED phase
+            const closedTime = incident.closed_at ? new Date(incident.closed_at) : null;
+            if (resolvedTime) {
+                if (closedTime) {
+                    phases.push({ status: 'RESOLVED', start: resolvedTime, end: closedTime });
+                } else if (incident.status === 'RESOLVED') {
+                    phases.push({ status: 'RESOLVED', start: resolvedTime, end: now });
+                }
+            }
+
+            // CLOSED phase (just a marker)
+            if (closedTime) {
+                phases.push({ status: 'CLOSED', start: closedTime, end: closedTime });
+            }
+
+            // Build chart data
+            const datasets = phases.map((phase, index) => ({
+                label: phase.status.replace('_', ' '),
+                data: [{
+                    x: [phase.start.getTime(), phase.end.getTime()],
+                    y: 0
+                }],
+                backgroundColor: statusColors[phase.status],
+                borderColor: statusColors[phase.status],
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+                barPercentage: 0.6
+            }));
+
+            lifecycleChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Incident Lifecycle'],
+                    datasets: datasets
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const phase = phases[context.datasetIndex];
+                                    const duration = calculateDuration(phase.start, phase.end);
+                                    return `${context.dataset.label}: ${duration}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    minute: 'HH:mm',
+                                    hour: 'MMM d, HH:mm',
+                                    day: 'MMM d'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            },
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTimelineChart(timeline) {
+            const ctx = document.getElementById('timeline-chart').getContext('2d');
+
+            // Destroy existing chart if present
+            if (timelineChartInstance) {
+                timelineChartInstance.destroy();
+            }
+
+            if (!timeline || timeline.length === 0) {
+                document.getElementById('timeline-chart').parentElement.innerHTML = '<p class="text-muted text-center">No timeline events to display</p>';
+                return;
+            }
+
+            // Group events by type for different datasets
+            const eventsByType = {};
+            timeline.forEach((event, index) => {
+                const type = event.event_type;
+                if (!eventsByType[type]) {
+                    eventsByType[type] = [];
+                }
+                eventsByType[type].push({
+                    x: new Date(event.created_at),
+                    y: Object.keys(eventTypeColors).indexOf(type) + 1,
+                    event: event,
+                    index: index
+                });
+            });
+
+            const datasets = Object.keys(eventsByType).map(type => ({
+                label: type.replace(/_/g, ' '),
+                data: eventsByType[type],
+                backgroundColor: eventTypeColors[type]?.bg || 'rgba(128, 128, 128, 0.8)',
+                borderColor: eventTypeColors[type]?.border || '#808080',
+                borderWidth: 2,
+                pointRadius: 10,
+                pointHoverRadius: 14,
+                pointStyle: 'circle',
+                showLine: false
+            }));
+
+            timelineChartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(contexts) {
+                                    const event = contexts[0].raw.event;
+                                    return event.event_type.replace(/_/g, ' ');
+                                },
+                                label: function(context) {
+                                    const event = context.raw.event;
+                                    return [
+                                        event.event_description.substring(0, 60) + (event.event_description.length > 60 ? '...' : ''),
+                                        `By: ${event.performed_by_name}`,
+                                        `At: ${new Date(event.created_at).toLocaleString()}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    minute: 'HH:mm',
+                                    hour: 'MMM d, HH:mm',
+                                    day: 'MMM d'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Timeline'
+                            }
+                        },
+                        y: {
+                            min: 0,
+                            max: Object.keys(eventTypeColors).length + 1,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    const types = Object.keys(eventTypeColors);
+                                    return types[value - 1]?.replace(/_/g, ' ') || '';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Event Type'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderActions() {
@@ -109,20 +417,50 @@
 
         function renderTimeline(timeline) {
             if (!timeline || timeline.length === 0) {
-                document.getElementById('timeline').innerHTML = '<p>No timeline events</p>';
+                document.getElementById('timeline').innerHTML = '<p class="text-muted">No timeline events</p>';
                 return;
             }
 
-            document.getElementById('timeline').innerHTML = timeline.map(event => `
-                <div class="timeline-item">
-                    <div class="timeline-marker"></div>
-                    <div class="timeline-content">
-                        <strong>${event.event_type.replace('_', ' ')}</strong>
-                        <p>${event.event_description}</p>
-                        <div class="timeline-time">${event.performed_by_name} - ${new Date(event.created_at).toLocaleString()}</div>
+            const eventIcons = {
+                'CREATE': '&#x2795;',      // Plus
+                'STATUS_CHANGE': '&#x27A1;', // Arrow
+                'ASSIGNMENT': '&#x1F464;',   // Person
+                'ESCALATION': '&#x26A0;',    // Warning
+                'COMMENT': '&#x1F4AC;',      // Speech bubble
+                'AI_RECOMMENDATION': '&#x1F916;' // Robot
+            };
+
+            document.getElementById('timeline').innerHTML = timeline.map((event, index) => {
+                const color = eventTypeColors[event.event_type]?.border || '#718096';
+                const icon = eventIcons[event.event_type] || '&#x2022;';
+                const isLast = index === timeline.length - 1;
+
+                return `
+                    <div class="timeline-item ${isLast ? 'last' : ''}">
+                        <div class="timeline-line" style="background: ${isLast ? 'transparent' : '#e2e8f0'}"></div>
+                        <div class="timeline-marker" style="background: ${color}; border-color: ${color};">
+                            <span class="timeline-icon">${icon}</span>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-event-type" style="color: ${color};">${event.event_type.replace(/_/g, ' ')}</span>
+                                <span class="timeline-time">${new Date(event.created_at).toLocaleString()}</span>
+                            </div>
+                            <p class="timeline-description">${event.event_description}</p>
+                            <div class="timeline-meta">
+                                <span class="timeline-user">By: ${event.performed_by_name}</span>
+                                ${event.old_value && event.new_value ? `
+                                    <span class="timeline-change">
+                                        <span class="badge badge-${event.old_value.toLowerCase().replace('_', '-')}">${event.old_value.replace('_', ' ')}</span>
+                                        &#x2192;
+                                        <span class="badge badge-${event.new_value.toLowerCase().replace('_', '-')}">${event.new_value.replace('_', ' ')}</span>
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function renderAISimilar(aiData) {
