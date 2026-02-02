@@ -6,45 +6,64 @@ body {
 }
 
 /* Navbar styles */
+nav.navbar,
 .navbar {
-  background-color: #1f3a5f;
+  background-color: #1f3a5f !important;
   color: white;
   padding: 0 20px;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
   height: 60px;
+  margin: 0;
 }
 
 .navbar-brand {
-  color: white;
+  color: white !important;
   text-decoration: none;
   font-size: 20px;
   font-weight: bold;
 }
 
 .navbar-brand:hover {
-  color: #e2e8f0;
+  color: #e2e8f0 !important;
 }
 
-.navbar-menu {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.navbar-menu,
+nav.navbar ul,
+.navbar ul {
+  display: flex !important;
+  list-style: none !important;
+  list-style-type: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   gap: 5px;
 }
 
-.navbar-menu li a {
-  color: white;
+.navbar-menu li,
+nav.navbar ul li,
+.navbar ul li {
+  list-style: none !important;
+  list-style-type: none !important;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-menu li a,
+nav.navbar ul li a,
+.navbar ul li a {
+  color: white !important;
   text-decoration: none;
   padding: 10px 15px;
   border-radius: 4px;
   transition: background-color 0.2s;
+  display: block;
 }
 
 .navbar-menu li a:hover,
-.navbar-menu li a.active {
+.navbar-menu li a.active,
+nav.navbar ul li a:hover,
+.navbar ul li a:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -404,3 +423,151 @@ select:focus, input:focus, textarea:focus {
   border-color: #3182ce;
   box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
 }
+
+/* Container variations */
+.container-wide {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Flexbox utilities */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Margin utilities */
+.mb-1 { margin-bottom: 10px; }
+.mb-2 { margin-bottom: 20px; }
+.mb-3 { margin-bottom: 30px; }
+.mt-1 { margin-top: 10px; }
+.mt-2 { margin-top: 20px; }
+.mr-1 { margin-right: 10px; }
+.ml-1 { margin-left: 10px; }
+
+/* Hidden utility */
+.hidden {
+  display: none !important;
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+}
+
+.form-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Alert/Message styles */
+.alert {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.alert-success {
+  background: #c6f6d5;
+  color: #276749;
+  border: 1px solid #9ae6b4;
+}
+
+.alert-error,
+.alert-danger {
+  background: #fed7d7;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+}
+
+.alert-warning {
+  background: #fefcbf;
+  color: #975a16;
+  border: 1px solid #faf089;
+}
+
+.alert-info {
+  background: #bee3f8;
+  color: #2b6cb0;
+  border: 1px solid #90cdf4;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  gap: 5px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.pagination button,
+.pagination a {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  color: #4a5568;
+}
+
+.pagination button:hover,
+.pagination a:hover {
+  background: #f7fafc;
+}
+
+.pagination button.active,
+.pagination a.active {
+  background: #3182ce;
+  color: white;
+  border-color: #3182ce;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Text utilities */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-muted { color: #718096; }
+.text-small { font-size: 12px; }
+
+/* Width utilities */
+.w-full { width: 100%; }
+.w-auto { width: auto; }
