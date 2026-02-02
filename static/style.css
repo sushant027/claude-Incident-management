@@ -1,3 +1,14 @@
+/* CSS Reset for navbar */
+nav.navbar ul,
+nav.navbar ol,
+nav.navbar li,
+.navbar ul,
+.navbar ol,
+.navbar li {
+  all: unset;
+  display: revert;
+}
+
 /* Base styles */
 body {
   font-family: Arial, Helvetica, sans-serif;
@@ -12,6 +23,7 @@ nav.navbar,
   color: white;
   padding: 0 20px;
   display: flex !important;
+  flex-direction: row !important;
   align-items: center;
   justify-content: space-between;
   height: 60px;
@@ -23,6 +35,7 @@ nav.navbar,
   text-decoration: none;
   font-size: 20px;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .navbar-brand:hover {
@@ -30,9 +43,10 @@ nav.navbar,
 }
 
 .navbar-menu,
-nav.navbar ul,
-.navbar ul {
+nav.navbar > ul,
+.navbar > ul {
   display: flex !important;
+  flex-direction: row !important;
   list-style: none !important;
   list-style-type: none !important;
   margin: 0 !important;
@@ -41,17 +55,18 @@ nav.navbar ul,
 }
 
 .navbar-menu li,
-nav.navbar ul li,
-.navbar ul li {
+nav.navbar > ul > li,
+.navbar > ul > li {
+  display: block !important;
   list-style: none !important;
   list-style-type: none !important;
-  margin: 0;
-  padding: 0;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .navbar-menu li a,
-nav.navbar ul li a,
-.navbar ul li a {
+nav.navbar > ul > li > a,
+.navbar > ul > li > a {
   color: white !important;
   text-decoration: none;
   padding: 10px 15px;
@@ -62,8 +77,8 @@ nav.navbar ul li a,
 
 .navbar-menu li a:hover,
 .navbar-menu li a.active,
-nav.navbar ul li a:hover,
-.navbar ul li a:hover {
+nav.navbar > ul > li > a:hover,
+.navbar > ul > li > a:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -71,6 +86,7 @@ nav.navbar ul li a:hover,
   display: flex;
   align-items: center;
   gap: 15px;
+  flex-shrink: 0;
 }
 
 .navbar-user span {
