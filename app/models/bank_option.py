@@ -1,7 +1,7 @@
 """
 Bank Option model - Stores bank technical configuration and infrastructure details
 """
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
@@ -90,6 +90,30 @@ class BankOption(Base):
     uptime_sla = Column(String(50), nullable=True)  # e.g., "99.99%"
     rto = Column(String(50), nullable=True)  # Recovery Time Objective
     rpo = Column(String(50), nullable=True)  # Recovery Point Objective
+
+    # Kubernetes Deployment Configuration
+    kubernetes_enabled = Column(Boolean, default=False, nullable=False)
+    # JSON array of deployment objects, each containing:
+    # {
+    #   "deployment_name": "imps-service",
+    #   "namespace": "payment-prod",
+    #   "replicas": 3,
+    #   "cpu_request": "500m",
+    #   "cpu_limit": "2000m",
+    #   "memory_request": "1Gi",
+    #   "memory_limit": "4Gi",
+    #   "alb_enabled": true,
+    #   "alb_name": "imps-alb",
+    #   "alb_target_group": "imps-tg",
+    #   "db_pool_config": {
+    #     "txn": {"min": 5, "max": 20},
+    #     "meta": {"min": 2, "max": 10},
+    #     "recon": {"min": 2, "max": 10},
+    #     "report": {"min": 2, "max": 10},
+    #     "mandate": {"min": 2, "max": 10}
+    #   }
+    # }
+    kubernetes_deployments = Column(JSON, nullable=True)
 
     # Audit fields
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -185,6 +209,10 @@ class BankOption(Base):
             "uptime_sla": self.uptime_sla,
             "rto": self.rto,
             "rpo": self.rpo,
+
+            # Kubernetes
+            "kubernetes_enabled": self.kubernetes_enabled,
+            "kubernetes_deployments": self.kubernetes_deployments,
 
             # Audit
             "created_at": self.created_at.isoformat() if self.created_at else None,

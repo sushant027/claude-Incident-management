@@ -1,7 +1,7 @@
 """
 Bank options routes - CRUD operations for bank technical configuration
 """
-from typing import Optional
+from typing import Optional, List, Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
@@ -35,6 +35,9 @@ class CreateBankOptionRequest(BaseModel):
     redis_description: Optional[str] = None
     recon_enabled: bool = False
     recon_technology: Optional[str] = None
+    # Kubernetes deployment configuration
+    kubernetes_enabled: bool = False
+    kubernetes_deployments: Optional[List[Any]] = None
 
 
 class UpdateBankOptionRequest(BaseModel):
@@ -55,6 +58,9 @@ class UpdateBankOptionRequest(BaseModel):
     redis_description: Optional[str] = None
     recon_enabled: Optional[bool] = None
     recon_technology: Optional[str] = None
+    # Kubernetes deployment configuration
+    kubernetes_enabled: Optional[bool] = None
+    kubernetes_deployments: Optional[List[Any]] = None
 
 
 @router.get("/bank-options")
@@ -139,6 +145,8 @@ async def create_bank_option(
         redis_description=option_data.redis_description,
         recon_enabled=option_data.recon_enabled,
         recon_technology=option_data.recon_technology,
+        kubernetes_enabled=option_data.kubernetes_enabled,
+        kubernetes_deployments=option_data.kubernetes_deployments,
         updated_by_id=user.id
     )
 

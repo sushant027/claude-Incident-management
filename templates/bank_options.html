@@ -5,6 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank Infrastructure - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Kubernetes Display Styles */
+        .k8s-section-card {
+            grid-column: 1 / -1;
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .k8s-section-card h3 {
+            background: linear-gradient(135deg, #326ce5 0%, #54a3ff 100%);
+            color: white;
+            padding: var(--spacing-4) var(--spacing-5);
+            margin: 0;
+            font-size: var(--font-size-lg);
+        }
+        .k8s-deployments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: var(--spacing-4);
+            padding: var(--spacing-4);
+        }
+        .k8s-deployment-view-card {
+            background: #f8fafc;
+            border: 2px solid #326ce5;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        .k8s-deployment-view-header {
+            background: linear-gradient(135deg, #326ce5 0%, #54a3ff 100%);
+            color: white;
+            padding: var(--spacing-3) var(--spacing-4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .k8s-deployment-view-header h4 {
+            margin: 0;
+            font-size: var(--font-size-base);
+            font-weight: 600;
+        }
+        .k8s-deployment-view-header .namespace-badge {
+            background: rgba(255,255,255,0.2);
+            padding: var(--spacing-1) var(--spacing-2);
+            border-radius: var(--border-radius-sm);
+            font-size: var(--font-size-sm);
+        }
+        .k8s-deployment-view-body {
+            padding: var(--spacing-4);
+        }
+        .k8s-info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-3);
+            margin-bottom: var(--spacing-4);
+        }
+        .k8s-info-item {
+            text-align: center;
+            padding: var(--spacing-2);
+            background: white;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-color);
+        }
+        .k8s-info-item .value {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: #326ce5;
+        }
+        .k8s-info-item .label {
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .k8s-subsection {
+            margin-top: var(--spacing-3);
+            padding-top: var(--spacing-3);
+            border-top: 1px solid var(--border-color);
+        }
+        .k8s-subsection-title {
+            font-weight: 600;
+            color: #326ce5;
+            margin-bottom: var(--spacing-2);
+            font-size: var(--font-size-sm);
+            text-transform: uppercase;
+        }
+        .db-pool-display-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: var(--spacing-2);
+        }
+        .db-pool-display-item {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-2);
+            text-align: center;
+        }
+        .db-pool-display-item .schema-name {
+            font-weight: 600;
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-1);
+        }
+        .db-pool-display-item .pool-values {
+            font-size: var(--font-size-sm);
+            color: #326ce5;
+            font-weight: 500;
+        }
+        .alb-info {
+            display: flex;
+            gap: var(--spacing-4);
+            flex-wrap: wrap;
+        }
+        .alb-info-item {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-2) var(--spacing-3);
+        }
+        .alb-info-item .label {
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .alb-info-item .value {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        @media (max-width: 768px) {
+            .k8s-deployments-grid {
+                grid-template-columns: 1fr;
+            }
+            .k8s-info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .db-pool-display-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -122,6 +263,127 @@
                     </div>
                 `;
             }
+        }
+
+        // Kubernetes section rendering helper
+        function renderK8sSection(data) {
+            if (!data.kubernetes_enabled) {
+                return `
+                    <div class="section-card">
+                        <h3>Kubernetes Deployment</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Enabled</span>
+                                <span class="option-value"><span class="badge-no">No</span></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const deployments = data.kubernetes_deployments || [];
+            if (deployments.length === 0) {
+                return `
+                    <div class="section-card">
+                        <h3>Kubernetes Deployment</h3>
+                        <div class="section-card-body">
+                            <div class="option-row">
+                                <span class="option-label">Enabled</span>
+                                <span class="option-value"><span class="badge-yes">Yes</span></span>
+                            </div>
+                            <p class="text-muted">No deployments configured</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const SCHEMA_LABELS = {
+                'txn': 'TXN',
+                'meta': 'META',
+                'recon': 'RECON',
+                'report': 'REPORT',
+                'mandate': 'MANDATE'
+            };
+
+            const deploymentsHtml = deployments.map((dep, idx) => {
+                const dbPoolConfig = dep.db_pool_config || {};
+                const hasDbPool = Object.keys(dbPoolConfig).length > 0;
+
+                const dbPoolHtml = hasDbPool ? `
+                    <div class="k8s-subsection">
+                        <div class="k8s-subsection-title">DB Connection Pool</div>
+                        <div class="db-pool-display-grid">
+                            ${['txn', 'meta', 'recon', 'report', 'mandate'].map(schema => {
+                                const pool = dbPoolConfig[schema] || {};
+                                const minVal = pool.min !== null && pool.min !== undefined ? pool.min : '-';
+                                const maxVal = pool.max !== null && pool.max !== undefined ? pool.max : '-';
+                                return `
+                                    <div class="db-pool-display-item">
+                                        <div class="schema-name">${SCHEMA_LABELS[schema]}</div>
+                                        <div class="pool-values">${minVal} / ${maxVal}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                ` : '';
+
+                const albHtml = dep.alb_enabled ? `
+                    <div class="k8s-subsection">
+                        <div class="k8s-subsection-title">Application Load Balancer</div>
+                        <div class="alb-info">
+                            <div class="alb-info-item">
+                                <div class="label">ALB Name</div>
+                                <div class="value">${dep.alb_name || 'N/A'}</div>
+                            </div>
+                            <div class="alb-info-item">
+                                <div class="label">Target Group</div>
+                                <div class="value">${dep.alb_target_group || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="k8s-deployment-view-card">
+                        <div class="k8s-deployment-view-header">
+                            <h4>${dep.deployment_name || 'Unnamed Deployment'}</h4>
+                            <span class="namespace-badge">${dep.namespace || 'default'}</span>
+                        </div>
+                        <div class="k8s-deployment-view-body">
+                            <div class="k8s-info-grid">
+                                <div class="k8s-info-item">
+                                    <div class="value">${dep.replicas || '-'}</div>
+                                    <div class="label">Replicas</div>
+                                </div>
+                                <div class="k8s-info-item">
+                                    <div class="value">${dep.cpu_request || '-'} / ${dep.cpu_limit || '-'}</div>
+                                    <div class="label">CPU (Req/Lim)</div>
+                                </div>
+                                <div class="k8s-info-item">
+                                    <div class="value">${dep.memory_request || '-'} / ${dep.memory_limit || '-'}</div>
+                                    <div class="label">Memory (Req/Lim)</div>
+                                </div>
+                                <div class="k8s-info-item">
+                                    <div class="value">${dep.alb_enabled ? '<span class="badge-yes">Yes</span>' : '<span class="badge-no">No</span>'}</div>
+                                    <div class="label">ALB</div>
+                                </div>
+                            </div>
+                            ${albHtml}
+                            ${dbPoolHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="k8s-section-card">
+                    <h3>Kubernetes Deployments</h3>
+                    <div class="k8s-deployments-grid">
+                        ${deploymentsHtml}
+                    </div>
+                </div>
+            `;
         }
 
         function renderBankOptions(data) {
@@ -372,6 +634,9 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Kubernetes Deployment Section -->
+                    ${renderK8sSection(data)}
 
                     <!-- Reconciliation Section -->
                     <div class="section-card">
