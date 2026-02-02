@@ -434,15 +434,16 @@
                 'mandate': 'MANDATE'
             };
 
-            // Calculate total pods (min and max)
-            const totalMinPods = deployments.reduce((sum, dep) => sum + (dep.min_replicas || 0), 0);
-            const totalMaxPods = deployments.reduce((sum, dep) => sum + (dep.max_replicas || 0), 0);
+            // Calculate total pods (min and max) - with backward compatibility for old 'replicas' field
+            const totalMinPods = deployments.reduce((sum, dep) => sum + (dep.min_replicas || dep.replicas || 0), 0);
+            const totalMaxPods = deployments.reduce((sum, dep) => sum + (dep.max_replicas || dep.replicas || 0), 0);
 
             const deploymentsHtml = deployments.map((dep, idx) => {
                 const dbPoolConfig = dep.db_pool_config || {};
                 const hasDbPool = Object.keys(dbPoolConfig).length > 0;
-                const minPods = dep.min_replicas || 1;
-                const maxPods = dep.max_replicas || minPods;
+                // Backward compatibility: use replicas if min_replicas/max_replicas not set
+                const minPods = dep.min_replicas || dep.replicas || 1;
+                const maxPods = dep.max_replicas || dep.replicas || minPods;
 
                 const dbPoolHtml = hasDbPool ? `
                     <div class="k8s-subsection">
@@ -528,8 +529,9 @@
 
             deployments.forEach(dep => {
                 const dbPoolConfig = dep.db_pool_config || {};
-                const minPods = dep.min_replicas || 1;
-                const maxPods = dep.max_replicas || minPods;
+                // Backward compatibility: use replicas if min_replicas/max_replicas not set
+                const minPods = dep.min_replicas || dep.replicas || 1;
+                const maxPods = dep.max_replicas || dep.replicas || minPods;
                 ['txn', 'meta', 'recon', 'report', 'mandate'].forEach(schema => {
                     const pool = dbPoolConfig[schema] || {};
                     if (pool.min) totalPools[schema].min += (pool.min * minPods);

@@ -804,8 +804,9 @@
 
             const deploymentName = deploymentData?.deployment_name || '';
             const namespace = deploymentData?.namespace || '';
-            const minReplicas = deploymentData?.min_replicas || '';
-            const maxReplicas = deploymentData?.max_replicas || '';
+            // Backward compatibility: use replicas if min_replicas/max_replicas not set
+            const minReplicas = deploymentData?.min_replicas || deploymentData?.replicas || '';
+            const maxReplicas = deploymentData?.max_replicas || deploymentData?.replicas || '';
             const cpuRequest = deploymentData?.cpu_request || '';
             const cpuLimit = deploymentData?.cpu_limit || '';
             const memoryRequest = deploymentData?.memory_request || '';
