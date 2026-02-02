@@ -258,14 +258,12 @@
             <select id="bank-select" onchange="loadBankOptions()" class="form-select" style="width: auto; min-width: 280px;">
                 <option value="">-- Select a Bank --</option>
             </select>
-            {% if user.role == 'ADMIN' %}
-            <button onclick="openAddBankModal()" class="btn btn-primary" style="margin-left: var(--spacing-3);">+ Add New Bank</button>
+            <button onclick="openAddBankModal()" class="btn btn-primary" id="btn-add-bank" style="margin-left: var(--spacing-3); display:none;">+ Add New Bank</button>
             <div class="action-buttons" style="margin-top: 0;">
                 <button onclick="editBankOption()" class="btn btn-edit" id="btn-edit" style="display:none;">Edit Configuration</button>
                 <button onclick="deleteBankOption()" class="btn btn-danger" id="btn-delete" style="display:none;">Delete</button>
                 <button onclick="createBankOption()" class="btn btn-success" id="btn-create" style="display:none;">Create Configuration</button>
             </div>
-            {% endif %}
         </div>
 
         <div id="options-content">
@@ -298,6 +296,13 @@
     <script>
         let currentBankId = null;
         let currentBankOption = null;
+        const userRole = '{{ user.role }}';
+        const isAdmin = userRole === 'ADMIN' || userRole === 'UserRole.ADMIN';
+
+        // Show Add Bank button for admin users
+        if (isAdmin) {
+            document.getElementById('btn-add-bank').style.display = 'inline-flex';
+        }
 
         async function loadBanks() {
             try {
@@ -865,15 +870,15 @@
             const btnCreate = document.getElementById('btn-create');
             if (btnEdit) btnEdit.style.display = 'none';
             if (btnDelete) btnDelete.style.display = 'none';
-            if (btnCreate) btnCreate.style.display = 'inline-flex';
+            if (btnCreate && isAdmin) btnCreate.style.display = 'inline-flex';
         }
 
         function showEditDeleteButtons() {
             const btnEdit = document.getElementById('btn-edit');
             const btnDelete = document.getElementById('btn-delete');
             const btnCreate = document.getElementById('btn-create');
-            if (btnEdit) btnEdit.style.display = 'inline-flex';
-            if (btnDelete) btnDelete.style.display = 'inline-flex';
+            if (btnEdit && isAdmin) btnEdit.style.display = 'inline-flex';
+            if (btnDelete && isAdmin) btnDelete.style.display = 'inline-flex';
             if (btnCreate) btnCreate.style.display = 'none';
         }
 
