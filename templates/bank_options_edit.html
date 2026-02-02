@@ -804,7 +804,8 @@
 
             const deploymentName = deploymentData?.deployment_name || '';
             const namespace = deploymentData?.namespace || '';
-            const replicas = deploymentData?.replicas || '';
+            const minReplicas = deploymentData?.min_replicas || '';
+            const maxReplicas = deploymentData?.max_replicas || '';
             const cpuRequest = deploymentData?.cpu_request || '';
             const cpuLimit = deploymentData?.cpu_limit || '';
             const memoryRequest = deploymentData?.memory_request || '';
@@ -823,7 +824,7 @@
                     <!-- Basic Info Section -->
                     <div class="k8s-section">
                         <div class="k8s-section-title">Basic Information</div>
-                        <div class="form-row form-row-3">
+                        <div class="form-row form-row-4">
                             <div class="form-group">
                                 <label class="form-label">Deployment Name *</label>
                                 <input type="text" class="form-input" id="k8s_${index}_deployment_name"
@@ -835,9 +836,14 @@
                                     value="${namespace}" placeholder="e.g., payment-prod" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Replicas</label>
-                                <input type="number" class="form-input" id="k8s_${index}_replicas"
-                                    value="${replicas}" placeholder="e.g., 3" min="1">
+                                <label class="form-label">Min Pods</label>
+                                <input type="number" class="form-input" id="k8s_${index}_min_replicas"
+                                    value="${minReplicas}" placeholder="e.g., 2" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Pods</label>
+                                <input type="number" class="form-input" id="k8s_${index}_max_replicas"
+                                    value="${maxReplicas}" placeholder="e.g., 10" min="1">
                             </div>
                         </div>
                     </div>
@@ -973,7 +979,8 @@
                     deployments.push({
                         deployment_name: deploymentName || null,
                         namespace: namespace || null,
-                        replicas: parseInt(document.getElementById(`k8s_${index}_replicas`)?.value) || null,
+                        min_replicas: parseInt(document.getElementById(`k8s_${index}_min_replicas`)?.value) || null,
+                        max_replicas: parseInt(document.getElementById(`k8s_${index}_max_replicas`)?.value) || null,
                         cpu_request: document.getElementById(`k8s_${index}_cpu_request`)?.value || null,
                         cpu_limit: document.getElementById(`k8s_${index}_cpu_limit`)?.value || null,
                         memory_request: document.getElementById(`k8s_${index}_memory_request`)?.value || null,

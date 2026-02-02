@@ -434,29 +434,33 @@
                 'mandate': 'MANDATE'
             };
 
-            // Calculate total replicas
-            const totalReplicas = deployments.reduce((sum, dep) => sum + (dep.replicas || 0), 0);
+            // Calculate total pods (min and max)
+            const totalMinPods = deployments.reduce((sum, dep) => sum + (dep.min_replicas || 0), 0);
+            const totalMaxPods = deployments.reduce((sum, dep) => sum + (dep.max_replicas || 0), 0);
 
             const deploymentsHtml = deployments.map((dep, idx) => {
                 const dbPoolConfig = dep.db_pool_config || {};
                 const hasDbPool = Object.keys(dbPoolConfig).length > 0;
-                const replicas = dep.replicas || 1;
+                const minPods = dep.min_replicas || 1;
+                const maxPods = dep.max_replicas || minPods;
 
                 const dbPoolHtml = hasDbPool ? `
                     <div class="k8s-subsection">
-                        <div class="k8s-subsection-title">DB Pool (per pod x ${replicas} pods)</div>
+                        <div class="k8s-subsection-title">DB Pool (${minPods}-${maxPods} pods)</div>
                         <div class="db-pool-display-grid">
                             ${['txn', 'meta', 'recon', 'report', 'mandate'].map(schema => {
                                 const pool = dbPoolConfig[schema] || {};
-                                const minVal = pool.min !== null && pool.min !== undefined ? pool.min : 0;
-                                const maxVal = pool.max !== null && pool.max !== undefined ? pool.max : 0;
-                                const totalMin = minVal * replicas;
-                                const totalMax = maxVal * replicas;
+                                const poolMin = pool.min !== null && pool.min !== undefined ? pool.min : 0;
+                                const poolMax = pool.max !== null && pool.max !== undefined ? pool.max : 0;
+                                // Min connections = pool_min * min_pods
+                                // Max connections = pool_max * max_pods
+                                const totalMin = poolMin * minPods;
+                                const totalMax = poolMax * maxPods;
                                 return `
                                     <div class="db-pool-display-item">
                                         <div class="schema-name">${SCHEMA_LABELS[schema]}</div>
-                                        <div class="pool-values">${minVal || '-'} / ${maxVal || '-'}</div>
-                                        <div class="pool-total">= ${totalMin} / ${totalMax}</div>
+                                        <div class="pool-values">${poolMin || '-'} / ${poolMax || '-'}</div>
+                                        <div class="pool-total">= ${totalMin} - ${totalMax}</div>
                                     </div>
                                 `;
                             }).join('')}
@@ -489,7 +493,7 @@
                         <div class="k8s-deployment-view-body">
                             <div class="k8s-info-grid">
                                 <div class="k8s-info-item">
-                                    <div class="value">${dep.replicas || '-'}</div>
+                                    <div class="value">${minPods} - ${maxPods}</div>
                                     <div class="label">Pods</div>
                                 </div>
                                 <div class="k8s-info-item">
@@ -512,7 +516,8 @@
                 `;
             }).join('');
 
-            // Calculate total connection pool per schema across all deployments (multiplied by replicas)
+            // Calculate total connection pool per schema across all deployments
+            // Min = pool_min * min_pods, Max = pool_max * max_pods
             const totalPools = {
                 txn: { min: 0, max: 0 },
                 meta: { min: 0, max: 0 },
@@ -523,11 +528,12 @@
 
             deployments.forEach(dep => {
                 const dbPoolConfig = dep.db_pool_config || {};
-                const replicas = dep.replicas || 1;
+                const minPods = dep.min_replicas || 1;
+                const maxPods = dep.max_replicas || minPods;
                 ['txn', 'meta', 'recon', 'report', 'mandate'].forEach(schema => {
                     const pool = dbPoolConfig[schema] || {};
-                    if (pool.min) totalPools[schema].min += (pool.min * replicas);
-                    if (pool.max) totalPools[schema].max += (pool.max * replicas);
+                    if (pool.min) totalPools[schema].min += (pool.min * minPods);
+                    if (pool.max) totalPools[schema].max += (pool.max * maxPods);
                 });
             });
 
@@ -538,21 +544,21 @@
             const totalSummaryHtml = `
                 <div class="k8s-total-summary">
                     <div class="k8s-total-summary-title">
-                        Total DB Connections (${deployments.length} deployments x ${totalReplicas} pods)
+                        Total DB Connections (${deployments.length} deployments | ${totalMinPods}-${totalMaxPods} pods)
                     </div>
                     <div class="k8s-total-grid">
                         ${['txn', 'meta', 'recon', 'report', 'mandate'].map(schema => `
                             <div class="k8s-total-item">
                                 <div class="schema-name">${SCHEMA_LABELS[schema]}</div>
-                                <div class="total-values">${totalPools[schema].min} / ${totalPools[schema].max}</div>
-                                <div class="total-label">Min / Max</div>
+                                <div class="total-values">${totalPools[schema].min} - ${totalPools[schema].max}</div>
+                                <div class="total-label">Min - Max</div>
                             </div>
                         `).join('')}
                     </div>
                     <div style="margin-top: var(--spacing-3); padding-top: var(--spacing-3); border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">
-                        <div style="color: rgba(255,255,255,0.7); font-size: var(--font-size-xs); text-transform: uppercase;">Grand Total</div>
-                        <div style="color: white; font-size: var(--font-size-xl); font-weight: 700;">${grandTotalMin} / ${grandTotalMax}</div>
-                        <div style="color: rgba(255,255,255,0.6); font-size: var(--font-size-xs);">Min / Max Connections</div>
+                        <div style="color: rgba(255,255,255,0.7); font-size: var(--font-size-xs); text-transform: uppercase;">Grand Total Connections</div>
+                        <div style="color: white; font-size: var(--font-size-xl); font-weight: 700;">${grandTotalMin} - ${grandTotalMax}</div>
+                        <div style="color: rgba(255,255,255,0.6); font-size: var(--font-size-xs);">Min Pods x Pool Min — Max Pods x Pool Max</div>
                     </div>
                 </div>
             `;
@@ -561,7 +567,7 @@
                 <div class="k8s-section-card">
                     <h3>
                         <span>Kubernetes Deployments</span>
-                        <span class="deployment-count">${deployments.length} deployments | ${totalReplicas} pods</span>
+                        <span class="deployment-count">${deployments.length} deployments | ${totalMinPods}-${totalMaxPods} pods</span>
                     </h3>
                     <div class="k8s-deployments-container">
                         <div class="k8s-deployments-grid">
