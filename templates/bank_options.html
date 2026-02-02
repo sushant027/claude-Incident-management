@@ -63,30 +63,32 @@
             transform: translateY(-1px);
         }
         .k8s-deployment-view-header {
-            background: #1e293b;
-            color: white;
-            padding: var(--spacing-2) var(--spacing-3);
+            background: #334155;
+            color: #ffffff;
+            padding: var(--spacing-3) var(--spacing-3);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .k8s-deployment-view-header h4 {
             margin: 0;
-            font-size: var(--font-size-sm);
+            font-size: var(--font-size-base);
             font-weight: 600;
+            color: #ffffff;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
         .k8s-deployment-view-header h4 .deploy-icon {
-            opacity: 0.8;
+            font-size: 16px;
         }
         .k8s-deployment-view-header .namespace-badge {
-            background: rgba(255,255,255,0.15);
-            padding: 2px var(--spacing-2);
+            background: #3b82f6;
+            color: #ffffff;
+            padding: 4px 10px;
             border-radius: var(--border-radius-sm);
             font-size: var(--font-size-xs);
-            border: 1px solid rgba(255,255,255,0.2);
+            font-weight: 500;
         }
         .k8s-deployment-view-body {
             padding: var(--spacing-3);
