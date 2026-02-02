@@ -120,6 +120,118 @@
                 width: 100%;
             }
         }
+        /* Kubernetes Deployment Styles */
+        .k8s-deployment-card {
+            background: #fff;
+            border: 2px solid #326ce5;
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-4);
+            overflow: hidden;
+        }
+        .k8s-deployment-header {
+            background: linear-gradient(135deg, #326ce5 0%, #54a3ff 100%);
+            color: white;
+            padding: var(--spacing-3) var(--spacing-4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .k8s-deployment-header h4 {
+            margin: 0;
+            font-size: var(--font-size-base);
+            font-weight: 600;
+        }
+        .k8s-deployment-body {
+            padding: var(--spacing-4);
+        }
+        .k8s-section {
+            margin-bottom: var(--spacing-4);
+            padding-bottom: var(--spacing-4);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .k8s-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .k8s-section-title {
+            font-weight: 600;
+            color: #326ce5;
+            margin-bottom: var(--spacing-3);
+            font-size: var(--font-size-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+        .k8s-section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: #326ce5;
+            border-radius: 2px;
+        }
+        .db-pool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--spacing-3);
+        }
+        .db-pool-card {
+            background: var(--bg-gray);
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-3);
+        }
+        .db-pool-card-title {
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-2);
+            font-size: var(--font-size-sm);
+            text-transform: uppercase;
+        }
+        .db-pool-inputs {
+            display: flex;
+            gap: var(--spacing-2);
+        }
+        .db-pool-inputs .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .db-pool-inputs .form-input {
+            text-align: center;
+            padding: var(--spacing-2);
+        }
+        .db-pool-inputs .form-label {
+            font-size: var(--font-size-xs);
+            text-align: center;
+            display: block;
+        }
+        .btn-remove-deployment {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: var(--spacing-1) var(--spacing-3);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            transition: all 0.2s;
+        }
+        .btn-remove-deployment:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .alb-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-3);
+        }
+        .alb-fields {
+            display: none;
+        }
+        .alb-fields.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -422,6 +534,27 @@
                     </div>
                 </div>
 
+                <!-- Kubernetes Deployment Section -->
+                <div class="form-section">
+                    <div class="form-section-header" style="background: linear-gradient(135deg, #326ce5 0%, #54a3ff 100%);">
+                        Kubernetes Deployment
+                    </div>
+                    <div class="form-section-body">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="kubernetes_enabled" name="kubernetes_enabled" onchange="toggleConditional('kubernetes')">
+                            <label for="kubernetes_enabled">Kubernetes Deployment Enabled</label>
+                        </div>
+                        <div id="kubernetes-fields" class="conditional-fields">
+                            <div id="k8s-deployments-container">
+                                <!-- Deployments will be dynamically added here -->
+                            </div>
+                            <button type="button" class="btn btn-success" onclick="addK8sDeployment()" style="margin-top: var(--spacing-4);">
+                                + Add Deployment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Reconciliation Section -->
                 <div class="form-section">
                     <div class="form-section-header">Reconciliation</div>
@@ -615,6 +748,13 @@
             setValue('db_developer_name', data.db_developer_name);
             setValue('db_developer_contact', data.db_developer_contact);
             setValue('ops_team_contact', data.ops_team_contact);
+
+            // Kubernetes
+            setCheckbox('kubernetes_enabled', data.kubernetes_enabled);
+            toggleConditional('kubernetes');
+            if (data.kubernetes_deployments) {
+                populateK8sDeployments(data.kubernetes_deployments);
+            }
         }
 
         function setValue(id, value) {
@@ -641,6 +781,225 @@
                     fields.classList.remove('active');
                 }
             }
+        }
+
+        // Kubernetes Deployment Management
+        let k8sDeploymentCount = 0;
+        const DB_SCHEMAS = ['txn', 'meta', 'recon', 'report', 'mandate'];
+        const SCHEMA_LABELS = {
+            'txn': 'Transaction',
+            'meta': 'Metadata',
+            'recon': 'Reconciliation',
+            'report': 'Report',
+            'mandate': 'Mandate'
+        };
+
+        function addK8sDeployment(deploymentData = null) {
+            const container = document.getElementById('k8s-deployments-container');
+            const index = k8sDeploymentCount++;
+
+            const card = document.createElement('div');
+            card.className = 'k8s-deployment-card';
+            card.id = `k8s-deployment-${index}`;
+
+            const deploymentName = deploymentData?.deployment_name || '';
+            const namespace = deploymentData?.namespace || '';
+            const replicas = deploymentData?.replicas || '';
+            const cpuRequest = deploymentData?.cpu_request || '';
+            const cpuLimit = deploymentData?.cpu_limit || '';
+            const memoryRequest = deploymentData?.memory_request || '';
+            const memoryLimit = deploymentData?.memory_limit || '';
+            const albEnabled = deploymentData?.alb_enabled || false;
+            const albName = deploymentData?.alb_name || '';
+            const albTargetGroup = deploymentData?.alb_target_group || '';
+            const dbPoolConfig = deploymentData?.db_pool_config || {};
+
+            card.innerHTML = `
+                <div class="k8s-deployment-header">
+                    <h4>Deployment ${index + 1}</h4>
+                    <button type="button" class="btn-remove-deployment" onclick="removeK8sDeployment(${index})">Remove</button>
+                </div>
+                <div class="k8s-deployment-body">
+                    <!-- Basic Info Section -->
+                    <div class="k8s-section">
+                        <div class="k8s-section-title">Basic Information</div>
+                        <div class="form-row form-row-3">
+                            <div class="form-group">
+                                <label class="form-label">Deployment Name *</label>
+                                <input type="text" class="form-input" id="k8s_${index}_deployment_name"
+                                    value="${deploymentName}" placeholder="e.g., imps-service" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Namespace *</label>
+                                <input type="text" class="form-input" id="k8s_${index}_namespace"
+                                    value="${namespace}" placeholder="e.g., payment-prod" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Replicas</label>
+                                <input type="number" class="form-input" id="k8s_${index}_replicas"
+                                    value="${replicas}" placeholder="e.g., 3" min="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resources Section -->
+                    <div class="k8s-section">
+                        <div class="k8s-section-title">Resource Allocation</div>
+                        <div class="form-row form-row-4">
+                            <div class="form-group">
+                                <label class="form-label">CPU Request</label>
+                                <input type="text" class="form-input" id="k8s_${index}_cpu_request"
+                                    value="${cpuRequest}" placeholder="e.g., 500m">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CPU Limit</label>
+                                <input type="text" class="form-input" id="k8s_${index}_cpu_limit"
+                                    value="${cpuLimit}" placeholder="e.g., 2000m">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Memory Request</label>
+                                <input type="text" class="form-input" id="k8s_${index}_memory_request"
+                                    value="${memoryRequest}" placeholder="e.g., 1Gi">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Memory Limit</label>
+                                <input type="text" class="form-input" id="k8s_${index}_memory_limit"
+                                    value="${memoryLimit}" placeholder="e.g., 4Gi">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ALB Section -->
+                    <div class="k8s-section">
+                        <div class="k8s-section-title">Application Load Balancer (ALB)</div>
+                        <div class="alb-checkbox-row">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="k8s_${index}_alb_enabled"
+                                    ${albEnabled ? 'checked' : ''} onchange="toggleAlbFields(${index})">
+                                <label for="k8s_${index}_alb_enabled">ALB Enabled</label>
+                            </div>
+                        </div>
+                        <div id="k8s_${index}_alb_fields" class="alb-fields ${albEnabled ? 'active' : ''}">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">ALB Name</label>
+                                    <input type="text" class="form-input" id="k8s_${index}_alb_name"
+                                        value="${albName}" placeholder="e.g., imps-alb">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Target Group</label>
+                                    <input type="text" class="form-input" id="k8s_${index}_alb_target_group"
+                                        value="${albTargetGroup}" placeholder="e.g., imps-tg">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DB Connection Pool Section -->
+                    <div class="k8s-section">
+                        <div class="k8s-section-title">DB Connection Pool Configuration</div>
+                        <div class="db-pool-grid">
+                            ${DB_SCHEMAS.map(schema => {
+                                const poolMin = dbPoolConfig[schema]?.min || '';
+                                const poolMax = dbPoolConfig[schema]?.max || '';
+                                return `
+                                    <div class="db-pool-card">
+                                        <div class="db-pool-card-title">${SCHEMA_LABELS[schema]}</div>
+                                        <div class="db-pool-inputs">
+                                            <div class="form-group">
+                                                <label class="form-label">Min</label>
+                                                <input type="number" class="form-input"
+                                                    id="k8s_${index}_pool_${schema}_min"
+                                                    value="${poolMin}" placeholder="5" min="0">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Max</label>
+                                                <input type="number" class="form-input"
+                                                    id="k8s_${index}_pool_${schema}_max"
+                                                    value="${poolMax}" placeholder="20" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(card);
+        }
+
+        function removeK8sDeployment(index) {
+            const card = document.getElementById(`k8s-deployment-${index}`);
+            if (card) {
+                card.remove();
+            }
+        }
+
+        function toggleAlbFields(index) {
+            const checkbox = document.getElementById(`k8s_${index}_alb_enabled`);
+            const fields = document.getElementById(`k8s_${index}_alb_fields`);
+            if (checkbox && fields) {
+                if (checkbox.checked) {
+                    fields.classList.add('active');
+                } else {
+                    fields.classList.remove('active');
+                }
+            }
+        }
+
+        function getK8sDeployments() {
+            const deployments = [];
+            const container = document.getElementById('k8s-deployments-container');
+            const cards = container.querySelectorAll('.k8s-deployment-card');
+
+            cards.forEach(card => {
+                const index = card.id.replace('k8s-deployment-', '');
+                const deploymentName = document.getElementById(`k8s_${index}_deployment_name`)?.value;
+                const namespace = document.getElementById(`k8s_${index}_namespace`)?.value;
+
+                // Only include if at least name or namespace is filled
+                if (deploymentName || namespace) {
+                    const dbPoolConfig = {};
+                    DB_SCHEMAS.forEach(schema => {
+                        const min = parseInt(document.getElementById(`k8s_${index}_pool_${schema}_min`)?.value) || null;
+                        const max = parseInt(document.getElementById(`k8s_${index}_pool_${schema}_max`)?.value) || null;
+                        if (min !== null || max !== null) {
+                            dbPoolConfig[schema] = { min, max };
+                        }
+                    });
+
+                    deployments.push({
+                        deployment_name: deploymentName || null,
+                        namespace: namespace || null,
+                        replicas: parseInt(document.getElementById(`k8s_${index}_replicas`)?.value) || null,
+                        cpu_request: document.getElementById(`k8s_${index}_cpu_request`)?.value || null,
+                        cpu_limit: document.getElementById(`k8s_${index}_cpu_limit`)?.value || null,
+                        memory_request: document.getElementById(`k8s_${index}_memory_request`)?.value || null,
+                        memory_limit: document.getElementById(`k8s_${index}_memory_limit`)?.value || null,
+                        alb_enabled: document.getElementById(`k8s_${index}_alb_enabled`)?.checked || false,
+                        alb_name: document.getElementById(`k8s_${index}_alb_name`)?.value || null,
+                        alb_target_group: document.getElementById(`k8s_${index}_alb_target_group`)?.value || null,
+                        db_pool_config: Object.keys(dbPoolConfig).length > 0 ? dbPoolConfig : null
+                    });
+                }
+            });
+
+            return deployments.length > 0 ? deployments : null;
+        }
+
+        function populateK8sDeployments(deployments) {
+            if (!deployments || !Array.isArray(deployments)) return;
+
+            // Clear existing deployments
+            document.getElementById('k8s-deployments-container').innerHTML = '';
+            k8sDeploymentCount = 0;
+
+            // Add each deployment
+            deployments.forEach(deployment => {
+                addK8sDeployment(deployment);
+            });
         }
 
         async function saveForm(event) {
@@ -709,7 +1068,10 @@
                 implementation_developer_contact: getStringValue('implementation_developer_contact'),
                 db_developer_name: getStringValue('db_developer_name'),
                 db_developer_contact: getStringValue('db_developer_contact'),
-                ops_team_contact: getStringValue('ops_team_contact')
+                ops_team_contact: getStringValue('ops_team_contact'),
+                // Kubernetes
+                kubernetes_enabled: document.getElementById('kubernetes_enabled').checked,
+                kubernetes_deployments: getK8sDeployments()
             };
 
             try {
