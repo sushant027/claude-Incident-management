@@ -1,8 +1,11 @@
 """
 Bank options routes - CRUD operations for bank technical configuration
 """
+import os
+import uuid
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from database import get_db
@@ -14,6 +17,12 @@ from app.utils.rbac import can_manage_architecture
 from app.utils.audit_log import log_audit, AuditAction
 
 router = APIRouter(prefix="/api", tags=["bank-options"])
+
+# Create uploads directory if it doesn't exist
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.pdf'}
 
 
 class CreateBankOptionRequest(BaseModel):
@@ -213,3 +222,62 @@ async def delete_bank_option(
     log_audit(db, "BANK_OPTION", option_id, AuditAction.DELETE, "Bank option deleted", user.id)
 
     return {"success": True, "message": "Bank option deleted"}
+
+
+@router.post("/bank-options/{bank_id}/upload-diagram")
+async def upload_architecture_diagram(
+    request: Request,
+    bank_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Upload architecture diagram for a bank (ADMIN only)"""
+    user = get_current_user(request, db)
+
+    if not can_manage_architecture(user):
+        raise HTTPException(status_code=403, detail="Only ADMIN can upload diagrams")
+
+    # Check file extension
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
+    # Check if bank option exists
+    bank_option = db.query(BankOption).filter(BankOption.bank_id == bank_id).first()
+    if not bank_option:
+        raise HTTPException(status_code=404, detail="Bank option not found. Create bank configuration first.")
+
+    # Delete old diagram if exists
+    if bank_option.architecture_diagram_url and bank_option.architecture_diagram_url.startswith('/static/uploads/'):
+        old_file = os.path.join(
+            os.path.dirname(UPLOAD_DIR),
+            bank_option.architecture_diagram_url.replace('/static/', '')
+        )
+        if os.path.exists(old_file):
+            os.remove(old_file)
+
+    # Generate unique filename
+    unique_filename = f"arch_{bank_id}_{uuid.uuid4().hex[:8]}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+
+    # Save file
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+
+    # Update bank option with new diagram URL
+    bank_option.architecture_diagram_url = f"/static/uploads/{unique_filename}"
+    bank_option.updated_by_id = user.id
+    db.commit()
+    db.refresh(bank_option)
+
+    log_audit(db, "BANK_OPTION", bank_option.id, AuditAction.UPDATE, "Architecture diagram uploaded", user.id)
+
+    return {
+        "success": True,
+        "message": "Diagram uploaded successfully",
+        "diagram_url": bank_option.architecture_diagram_url
+    }
