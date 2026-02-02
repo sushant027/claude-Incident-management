@@ -15,6 +15,12 @@ from app.utils.audit_log import log_audit, AuditAction
 
 router = APIRouter(tags=["banks"])
 
+
+# Bank request models
+class CreateBankRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+
+
 # Bank routes
 @router.get("/banks")
 async def list_banks(request: Request, db: Session = Depends(get_db)):
@@ -22,6 +28,33 @@ async def list_banks(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     banks = db.query(Bank).filter(Bank.active == True).all()
     return [bank.to_dict() for bank in banks]
+
+
+@router.post("/banks")
+async def create_bank(
+    request: Request,
+    bank_data: CreateBankRequest,
+    db: Session = Depends(get_db)
+):
+    """Create a new bank (ADMIN only)"""
+    user = get_current_user(request, db)
+
+    if not can_manage_architecture(user):
+        raise HTTPException(status_code=403, detail="Only ADMIN can create banks")
+
+    # Check if bank with same name exists
+    existing = db.query(Bank).filter(Bank.name == bank_data.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bank with this name already exists")
+
+    bank = Bank(name=bank_data.name, active=True)
+    db.add(bank)
+    db.commit()
+    db.refresh(bank)
+
+    log_audit(db, "BANK", bank.id, AuditAction.CREATE, f"Bank '{bank.name}' created", user.id)
+
+    return bank.to_dict()
 
 # Architecture routes
 class CreateArchitectureRequest(BaseModel):

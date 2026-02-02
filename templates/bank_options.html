@@ -134,6 +134,89 @@
             font-weight: 500;
             color: var(--text-primary);
         }
+        /* Total Connection Pool Summary */
+        .k8s-total-summary {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            padding: var(--spacing-4);
+            margin: var(--spacing-4);
+            margin-top: 0;
+            border-radius: var(--border-radius);
+        }
+        .k8s-total-summary-title {
+            color: white;
+            font-weight: 600;
+            margin-bottom: var(--spacing-3);
+            font-size: var(--font-size-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .k8s-total-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: var(--spacing-3);
+        }
+        .k8s-total-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-3);
+            text-align: center;
+        }
+        .k8s-total-item .schema-name {
+            color: rgba(255,255,255,0.8);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            margin-bottom: var(--spacing-1);
+        }
+        .k8s-total-item .total-values {
+            color: white;
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+        }
+        .k8s-total-item .total-label {
+            color: rgba(255,255,255,0.6);
+            font-size: var(--font-size-xs);
+            margin-top: var(--spacing-1);
+        }
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: var(--spacing-6);
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            margin-bottom: var(--spacing-4);
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+            color: var(--text-primary);
+        }
+        .modal-body {
+            margin-bottom: var(--spacing-4);
+        }
+        .modal-footer {
+            display: flex;
+            gap: var(--spacing-3);
+            justify-content: flex-end;
+        }
         @media (max-width: 768px) {
             .k8s-deployments-grid {
                 grid-template-columns: 1fr;
@@ -142,6 +225,9 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             .db-pool-display-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .k8s-total-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
@@ -173,6 +259,7 @@
                 <option value="">-- Select a Bank --</option>
             </select>
             {% if user.role == 'ADMIN' %}
+            <button onclick="openAddBankModal()" class="btn btn-primary" style="margin-left: var(--spacing-3);">+ Add New Bank</button>
             <div class="action-buttons" style="margin-top: 0;">
                 <button onclick="editBankOption()" class="btn btn-edit" id="btn-edit" style="display:none;">Edit Configuration</button>
                 <button onclick="deleteBankOption()" class="btn btn-danger" id="btn-delete" style="display:none;">Delete</button>
@@ -185,6 +272,25 @@
             <div class="no-data">
                 <h3>Select a bank to view its infrastructure details</h3>
                 <p>Choose a bank from the dropdown above to view its technical configuration, server specifications, and infrastructure information.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Bank Modal -->
+    <div id="add-bank-modal" class="modal-overlay" onclick="closeAddBankModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>Add New Bank</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="new-bank-name">Bank Name *</label>
+                    <input type="text" id="new-bank-name" class="form-input" placeholder="Enter bank name" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddBankModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewBank()">Add Bank</button>
             </div>
         </div>
     </div>
@@ -376,12 +482,46 @@
                 `;
             }).join('');
 
+            // Calculate total connection pool per schema across all deployments
+            const totalPools = {
+                txn: { min: 0, max: 0 },
+                meta: { min: 0, max: 0 },
+                recon: { min: 0, max: 0 },
+                report: { min: 0, max: 0 },
+                mandate: { min: 0, max: 0 }
+            };
+
+            deployments.forEach(dep => {
+                const dbPoolConfig = dep.db_pool_config || {};
+                ['txn', 'meta', 'recon', 'report', 'mandate'].forEach(schema => {
+                    const pool = dbPoolConfig[schema] || {};
+                    if (pool.min) totalPools[schema].min += pool.min;
+                    if (pool.max) totalPools[schema].max += pool.max;
+                });
+            });
+
+            const totalSummaryHtml = `
+                <div class="k8s-total-summary">
+                    <div class="k8s-total-summary-title">Total DB Connections Across All Deployments</div>
+                    <div class="k8s-total-grid">
+                        ${['txn', 'meta', 'recon', 'report', 'mandate'].map(schema => `
+                            <div class="k8s-total-item">
+                                <div class="schema-name">${SCHEMA_LABELS[schema]}</div>
+                                <div class="total-values">${totalPools[schema].min} / ${totalPools[schema].max}</div>
+                                <div class="total-label">Min / Max</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
             return `
                 <div class="k8s-section-card">
-                    <h3>Kubernetes Deployments</h3>
+                    <h3>Kubernetes Deployments (${deployments.length})</h3>
                     <div class="k8s-deployments-grid">
                         ${deploymentsHtml}
                     </div>
+                    ${totalSummaryHtml}
                 </div>
             `;
         }
@@ -778,6 +918,66 @@
             await fetch('/auth/logout', { method: 'POST' });
             window.location.href = '/login';
         }
+
+        // Add New Bank Modal Functions
+        function openAddBankModal() {
+            document.getElementById('add-bank-modal').classList.add('active');
+            document.getElementById('new-bank-name').value = '';
+            document.getElementById('new-bank-name').focus();
+        }
+
+        function closeAddBankModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('add-bank-modal').classList.remove('active');
+        }
+
+        async function saveNewBank() {
+            const bankName = document.getElementById('new-bank-name').value.trim();
+
+            if (!bankName) {
+                alert('Please enter a bank name');
+                return;
+            }
+
+            try {
+                const response = await fetch('/banks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: bankName })
+                });
+
+                if (response.ok) {
+                    const newBank = await response.json();
+                    closeAddBankModal();
+
+                    // Refresh banks dropdown and select the new bank
+                    const select = document.getElementById('bank-select');
+                    const option = document.createElement('option');
+                    option.value = newBank.id;
+                    option.textContent = newBank.name;
+                    select.appendChild(option);
+                    select.value = newBank.id;
+
+                    alert('Bank added successfully!');
+                    loadBankOptions();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to add bank'));
+                }
+            } catch (error) {
+                console.error('Error adding bank:', error);
+                alert('Error adding bank');
+            }
+        }
+
+        // Handle Enter key in modal
+        document.getElementById('new-bank-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                saveNewBank();
+            }
+        });
 
         loadBanks();
     </script>
