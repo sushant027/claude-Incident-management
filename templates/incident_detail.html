@@ -5,6 +5,207 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Incident Detail - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Status Flow Diagram */
+        .status-flow-container {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .status-flow-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .status-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .status-node.completed {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: #059669;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .status-node.current {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-color: #2563eb;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transform: scale(1.05);
+        }
+        .status-node.pending {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+        }
+        .status-node-icon {
+            font-size: 20px;
+            margin-bottom: 6px;
+        }
+        .status-node-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .status-node-time {
+            font-size: 9px;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+        .status-arrow {
+            color: #cbd5e1;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .status-arrow.completed {
+            color: #10b981;
+        }
+
+        /* Enhanced Timeline */
+        .timeline-container {
+            position: relative;
+            padding: 20px 0;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 24px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #3b82f6 0%, #10b981 100%);
+            border-radius: 2px;
+        }
+        .timeline-event {
+            position: relative;
+            padding-left: 60px;
+            padding-bottom: 24px;
+            margin-left: 0;
+        }
+        .timeline-event:last-child {
+            padding-bottom: 0;
+        }
+        .timeline-event-marker {
+            position: absolute;
+            left: 12px;
+            top: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1;
+        }
+        .timeline-event-marker.create { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .timeline-event-marker.status { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .timeline-event-marker.comment { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .timeline-event-marker.assignment { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .timeline-event-marker.ai { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+        .timeline-event-marker.resolution { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
+
+        .timeline-event-card {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .timeline-event-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transform: translateX(4px);
+        }
+        .timeline-event-header {
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .timeline-event-type {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .timeline-event-type.create { color: #7c3aed; }
+        .timeline-event-type.status { color: #2563eb; }
+        .timeline-event-type.comment { color: #d97706; }
+        .timeline-event-type.assignment { color: #059669; }
+        .timeline-event-type.ai { color: #db2777; }
+        .timeline-event-type.resolution { color: #0891b2; }
+
+        .timeline-event-meta {
+            font-size: 11px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .timeline-event-body {
+            padding: 12px 16px;
+        }
+        .timeline-event-description {
+            font-size: 14px;
+            color: #334155;
+            line-height: 1.5;
+        }
+        .timeline-event-user {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #475569;
+        }
+        .timeline-event-user-icon {
+            font-size: 12px;
+        }
+
+        /* Status badges in timeline */
+        .status-change-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin: 0 4px;
+        }
+        .status-change-badge.from { background: #fee2e2; color: #dc2626; }
+        .status-change-badge.to { background: #dcfce7; color: #16a34a; }
+        .status-change-arrow { color: #64748b; margin: 0 4px; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -38,8 +239,13 @@
         </div>
 
         <div class="card">
-            <div class="card-header">Timeline</div>
-            <div class="timeline" id="timeline"></div>
+            <div class="card-header">Incident Status Flow</div>
+            <div id="status-flow"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Activity Timeline</div>
+            <div class="timeline-container" id="timeline"></div>
         </div>
 
         <div id="ai-similar" class="card hidden">
@@ -73,8 +279,73 @@
             `;
 
             renderActions();
+            renderStatusFlow(incident.status, incident.timeline);
             renderTimeline(incident.timeline);
             renderAISimilar(incident.ai_similar);
+        }
+
+        function renderStatusFlow(currentStatus, timeline) {
+            const statuses = [
+                { key: 'OPEN', label: 'Open', icon: '📋' },
+                { key: 'ACKNOWLEDGED', label: 'Acknowledged', icon: '👁️' },
+                { key: 'IN_PROGRESS', label: 'In Progress', icon: '⚙️' },
+                { key: 'RESOLVED', label: 'Resolved', icon: '✅' },
+                { key: 'CLOSED', label: 'Closed', icon: '🔒' }
+            ];
+
+            const statusOrder = ['OPEN', 'ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+            const currentIndex = statusOrder.indexOf(currentStatus);
+
+            // Get timestamps for each status from timeline
+            const statusTimestamps = {};
+            if (timeline) {
+                timeline.forEach(event => {
+                    if (event.event_type === 'CREATE') {
+                        statusTimestamps['OPEN'] = event.created_at;
+                    } else if (event.event_type === 'STATUS_CHANGE') {
+                        const match = event.event_description.match(/to (\w+)/);
+                        if (match) {
+                            statusTimestamps[match[1]] = event.created_at;
+                        }
+                    }
+                });
+            }
+
+            let html = '<div class="status-flow-container">';
+            html += '<div class="status-flow-title">Status Progression</div>';
+            html += '<div class="status-flow">';
+
+            statuses.forEach((status, index) => {
+                let nodeClass = 'status-node';
+                if (index < currentIndex) {
+                    nodeClass += ' completed';
+                } else if (index === currentIndex) {
+                    nodeClass += ' current';
+                } else {
+                    nodeClass += ' pending';
+                }
+
+                const timestamp = statusTimestamps[status.key];
+                const timeStr = timestamp ? new Date(timestamp).toLocaleString('en-US', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                }) : '';
+
+                html += `
+                    <div class="${nodeClass}">
+                        <span class="status-node-icon">${status.icon}</span>
+                        <span class="status-node-label">${status.label}</span>
+                        ${timeStr ? `<span class="status-node-time">${timeStr}</span>` : ''}
+                    </div>
+                `;
+
+                if (index < statuses.length - 1) {
+                    const arrowClass = index < currentIndex ? 'status-arrow completed' : 'status-arrow';
+                    html += `<span class="${arrowClass}">→</span>`;
+                }
+            });
+
+            html += '</div></div>';
+            document.getElementById('status-flow').innerHTML = html;
         }
 
         function renderActions() {
@@ -109,20 +380,70 @@
 
         function renderTimeline(timeline) {
             if (!timeline || timeline.length === 0) {
-                document.getElementById('timeline').innerHTML = '<p>No timeline events</p>';
+                document.getElementById('timeline').innerHTML = '<p style="padding: 20px; color: #64748b;">No timeline events</p>';
                 return;
             }
 
-            document.getElementById('timeline').innerHTML = timeline.map(event => `
-                <div class="timeline-item">
-                    <div class="timeline-marker"></div>
-                    <div class="timeline-content">
-                        <strong>${event.event_type.replace('_', ' ')}</strong>
-                        <p>${event.event_description}</p>
-                        <div class="timeline-time">${event.performed_by_name} - ${new Date(event.created_at).toLocaleString()}</div>
+            const eventConfig = {
+                'CREATE': { icon: '🆕', label: 'Created', markerClass: 'create', typeClass: 'create' },
+                'STATUS_CHANGE': { icon: '🔄', label: 'Status Change', markerClass: 'status', typeClass: 'status' },
+                'COMMENT': { icon: '💬', label: 'Comment', markerClass: 'comment', typeClass: 'comment' },
+                'ASSIGNMENT': { icon: '👤', label: 'Assignment', markerClass: 'assignment', typeClass: 'assignment' },
+                'AI_SEARCH': { icon: '🤖', label: 'AI Analysis', markerClass: 'ai', typeClass: 'ai' },
+                'RESOLUTION': { icon: '✅', label: 'Resolution', markerClass: 'resolution', typeClass: 'resolution' }
+            };
+
+            let html = '<div class="timeline-line"></div>';
+
+            html += timeline.map(event => {
+                const config = eventConfig[event.event_type] || { icon: '📌', label: event.event_type, markerClass: 'status', typeClass: 'status' };
+                const eventDate = new Date(event.created_at);
+                const formattedDate = eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const formattedTime = eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                // Format description for status changes
+                let description = event.event_description;
+                if (event.event_type === 'STATUS_CHANGE') {
+                    const statusMatch = description.match(/from (\w+) to (\w+)/);
+                    if (statusMatch) {
+                        const fromStatus = statusMatch[1].replace('_', ' ');
+                        const toStatus = statusMatch[2].replace('_', ' ');
+                        const comment = description.includes(':') ? description.split(':').slice(1).join(':').trim() : '';
+                        description = `
+                            <span class="status-change-badge from">${fromStatus}</span>
+                            <span class="status-change-arrow">→</span>
+                            <span class="status-change-badge to">${toStatus}</span>
+                            ${comment ? `<div style="margin-top: 8px; color: #64748b; font-style: italic;">"${comment}"</div>` : ''}
+                        `;
+                    }
+                }
+
+                return `
+                    <div class="timeline-event">
+                        <div class="timeline-event-marker ${config.markerClass}">${config.icon}</div>
+                        <div class="timeline-event-card">
+                            <div class="timeline-event-header">
+                                <span class="timeline-event-type ${config.typeClass}">
+                                    ${config.label}
+                                </span>
+                                <span class="timeline-event-meta">
+                                    <span>📅 ${formattedDate}</span>
+                                    <span>🕐 ${formattedTime}</span>
+                                </span>
+                            </div>
+                            <div class="timeline-event-body">
+                                <div class="timeline-event-description">${description}</div>
+                                <div class="timeline-event-user">
+                                    <span class="timeline-event-user-icon">👤</span>
+                                    ${event.performed_by_name}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+
+            document.getElementById('timeline').innerHTML = html;
         }
 
         function renderAISimilar(aiData) {
