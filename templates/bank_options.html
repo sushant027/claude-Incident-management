@@ -6,49 +6,64 @@
     <title>Bank Infrastructure - Incident Management</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        /* Kubernetes Display Styles */
+        /* Kubernetes Display Styles - Clean Professional Theme */
         .k8s-section-card {
             grid-column: 1 / -1;
-            background: var(--bg-white);
+            background: #ffffff;
             border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
+            border: 1px solid #e2e8f0;
         }
         .k8s-section-card h3 {
-            background: linear-gradient(135deg, #326ce5 0%, #54a3ff 100%);
-            color: white;
+            background: #f8fafc;
+            color: #1e293b;
             padding: var(--spacing-4) var(--spacing-5);
             margin: 0;
             font-size: var(--font-size-lg);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .k8s-section-card h3 .k8s-icon {
+            margin-right: var(--spacing-2);
+            font-size: 1.2em;
         }
         .k8s-section-card h3 .deployment-count {
-            background: rgba(255,255,255,0.2);
+            background: #3b82f6;
+            color: white;
             padding: var(--spacing-1) var(--spacing-3);
             border-radius: var(--border-radius-sm);
             font-size: var(--font-size-sm);
+            font-weight: 500;
         }
         .k8s-deployments-container {
-            max-height: 600px;
+            max-height: 550px;
             overflow-y: auto;
             padding: var(--spacing-4);
+            background: #f8fafc;
         }
         .k8s-deployments-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: var(--spacing-3);
         }
         .k8s-deployment-view-card {
-            background: #f8fafc;
-            border: 1px solid #326ce5;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: var(--border-radius);
             overflow: hidden;
             font-size: var(--font-size-sm);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .k8s-deployment-view-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
         }
         .k8s-deployment-view-header {
-            background: linear-gradient(135deg, #326ce5 0%, #54a3ff 100%);
+            background: #1e293b;
             color: white;
             padding: var(--spacing-2) var(--spacing-3);
             display: flex;
@@ -59,12 +74,19 @@
             margin: 0;
             font-size: var(--font-size-sm);
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .k8s-deployment-view-header h4 .deploy-icon {
+            opacity: 0.8;
         }
         .k8s-deployment-view-header .namespace-badge {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             padding: 2px var(--spacing-2);
             border-radius: var(--border-radius-sm);
             font-size: var(--font-size-xs);
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .k8s-deployment-view-body {
             padding: var(--spacing-3);
@@ -77,59 +99,75 @@
         }
         .k8s-info-item {
             text-align: center;
-            padding: var(--spacing-1);
-            background: white;
+            padding: var(--spacing-2);
+            background: #f8fafc;
             border-radius: var(--border-radius-sm);
-            border: 1px solid var(--border-color);
+            border: 1px solid #e2e8f0;
+        }
+        .k8s-info-item .icon {
+            font-size: 14px;
+            margin-bottom: 2px;
+            display: block;
         }
         .k8s-info-item .value {
             font-size: var(--font-size-sm);
             font-weight: 600;
-            color: #326ce5;
+            color: #1e293b;
         }
         .k8s-info-item .label {
-            font-size: 10px;
-            color: var(--text-muted);
+            font-size: 9px;
+            color: #64748b;
             text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         .k8s-subsection {
-            margin-top: var(--spacing-2);
-            padding-top: var(--spacing-2);
-            border-top: 1px solid var(--border-color);
+            margin-top: var(--spacing-3);
+            padding-top: var(--spacing-3);
+            border-top: 1px solid #e2e8f0;
         }
         .k8s-subsection-title {
             font-weight: 600;
-            color: #326ce5;
+            color: #475569;
             margin-bottom: var(--spacing-2);
             font-size: var(--font-size-xs);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .k8s-subsection-title .section-icon {
+            font-size: 12px;
         }
         .db-pool-display-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 4px;
+            gap: 6px;
         }
         .db-pool-display-item {
-            background: white;
-            border: 1px solid var(--border-color);
+            background: #f1f5f9;
             border-radius: var(--border-radius-sm);
-            padding: 4px;
+            padding: 6px 4px;
             text-align: center;
+            border: 1px solid #e2e8f0;
         }
         .db-pool-display-item .schema-name {
             font-weight: 600;
             font-size: 9px;
             text-transform: uppercase;
-            color: var(--text-secondary);
+            color: #64748b;
+            letter-spacing: 0.3px;
         }
         .db-pool-display-item .pool-values {
-            font-size: var(--font-size-xs);
-            color: #326ce5;
-            font-weight: 500;
+            font-size: 11px;
+            color: #1e293b;
+            font-weight: 600;
+            margin: 2px 0;
         }
         .db-pool-display-item .pool-total {
             font-size: 9px;
-            color: var(--text-muted);
+            color: #3b82f6;
+            font-weight: 500;
         }
         .alb-info {
             display: flex;
@@ -137,36 +175,42 @@
             flex-wrap: wrap;
         }
         .alb-info-item {
-            background: white;
-            border: 1px solid var(--border-color);
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
             border-radius: var(--border-radius-sm);
-            padding: 4px var(--spacing-2);
+            padding: 6px var(--spacing-2);
             font-size: var(--font-size-xs);
         }
         .alb-info-item .label {
             font-size: 9px;
-            color: var(--text-muted);
+            color: #64748b;
             text-transform: uppercase;
         }
         .alb-info-item .value {
-            font-weight: 500;
-            color: var(--text-primary);
+            font-weight: 600;
+            color: #1e293b;
         }
-        /* Total Connection Pool Summary */
+        /* Total Connection Pool Summary - Professional Dark Theme */
         .k8s-total-summary {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            background: #1e293b;
             padding: var(--spacing-4);
             margin: var(--spacing-4);
             margin-top: 0;
             border-radius: var(--border-radius);
         }
         .k8s-total-summary-title {
-            color: white;
+            color: #f1f5f9;
             font-weight: 600;
             margin-bottom: var(--spacing-3);
             font-size: var(--font-size-sm);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .k8s-total-summary-title .summary-icon {
+            font-size: 16px;
         }
         .k8s-total-grid {
             display: grid;
@@ -174,26 +218,50 @@
             gap: var(--spacing-3);
         }
         .k8s-total-item {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             border-radius: var(--border-radius-sm);
             padding: var(--spacing-3);
             text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .k8s-total-item .schema-name {
-            color: rgba(255,255,255,0.8);
+            color: #94a3b8;
             font-size: var(--font-size-xs);
             text-transform: uppercase;
             margin-bottom: var(--spacing-1);
+            letter-spacing: 0.5px;
         }
         .k8s-total-item .total-values {
-            color: white;
+            color: #f1f5f9;
             font-size: var(--font-size-lg);
-            font-weight: 600;
+            font-weight: 700;
         }
         .k8s-total-item .total-label {
-            color: rgba(255,255,255,0.6);
+            color: #64748b;
             font-size: var(--font-size-xs);
             margin-top: var(--spacing-1);
+        }
+        .grand-total-section {
+            margin-top: var(--spacing-3);
+            padding-top: var(--spacing-3);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .grand-total-label {
+            color: #94a3b8;
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .grand-total-value {
+            color: #3b82f6;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 4px 0;
+        }
+        .grand-total-desc {
+            color: #64748b;
+            font-size: var(--font-size-xs);
         }
         /* Modal Styles */
         .modal-overlay {
@@ -447,7 +515,7 @@
 
                 const dbPoolHtml = hasDbPool ? `
                     <div class="k8s-subsection">
-                        <div class="k8s-subsection-title">DB Pool (${minPods}-${maxPods} pods)</div>
+                        <div class="k8s-subsection-title"><span class="section-icon">🗄️</span> DB Pool (${minPods}-${maxPods} pods)</div>
                         <div class="db-pool-display-grid">
                             ${['txn', 'meta', 'recon', 'report', 'mandate'].map(schema => {
                                 const pool = dbPoolConfig[schema] || {};
@@ -471,10 +539,10 @@
 
                 const albHtml = dep.alb_enabled ? `
                     <div class="k8s-subsection">
-                        <div class="k8s-subsection-title">ALB</div>
+                        <div class="k8s-subsection-title"><span class="section-icon">⚖️</span> Load Balancer</div>
                         <div class="alb-info">
                             <div class="alb-info-item">
-                                <div class="label">Name</div>
+                                <div class="label">ALB Name</div>
                                 <div class="value">${dep.alb_name || 'N/A'}</div>
                             </div>
                             <div class="alb-info-item">
@@ -488,25 +556,29 @@
                 return `
                     <div class="k8s-deployment-view-card">
                         <div class="k8s-deployment-view-header">
-                            <h4>${dep.deployment_name || 'Unnamed'}</h4>
+                            <h4><span class="deploy-icon">📦</span> ${dep.deployment_name || 'Unnamed'}</h4>
                             <span class="namespace-badge">${dep.namespace || 'default'}</span>
                         </div>
                         <div class="k8s-deployment-view-body">
                             <div class="k8s-info-grid">
                                 <div class="k8s-info-item">
+                                    <span class="icon">🔢</span>
                                     <div class="value">${minPods} - ${maxPods}</div>
                                     <div class="label">Pods</div>
                                 </div>
                                 <div class="k8s-info-item">
+                                    <span class="icon">⚡</span>
                                     <div class="value">${dep.cpu_request || '-'}</div>
-                                    <div class="label">CPU Req</div>
+                                    <div class="label">CPU</div>
                                 </div>
                                 <div class="k8s-info-item">
+                                    <span class="icon">💾</span>
                                     <div class="value">${dep.memory_request || '-'}</div>
-                                    <div class="label">Mem Req</div>
+                                    <div class="label">Memory</div>
                                 </div>
                                 <div class="k8s-info-item">
-                                    <div class="value">${dep.alb_enabled ? '<span class="badge-yes">Y</span>' : '<span class="badge-no">N</span>'}</div>
+                                    <span class="icon">⚖️</span>
+                                    <div class="value">${dep.alb_enabled ? '<span class="badge-yes">Yes</span>' : '<span class="badge-no">No</span>'}</div>
                                     <div class="label">ALB</div>
                                 </div>
                             </div>
@@ -546,7 +618,7 @@
             const totalSummaryHtml = `
                 <div class="k8s-total-summary">
                     <div class="k8s-total-summary-title">
-                        Total DB Connections (${deployments.length} deployments | ${totalMinPods}-${totalMaxPods} pods)
+                        <span class="summary-icon">📊</span> Total DB Connections
                     </div>
                     <div class="k8s-total-grid">
                         ${['txn', 'meta', 'recon', 'report', 'mandate'].map(schema => `
@@ -557,10 +629,10 @@
                             </div>
                         `).join('')}
                     </div>
-                    <div style="margin-top: var(--spacing-3); padding-top: var(--spacing-3); border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">
-                        <div style="color: rgba(255,255,255,0.7); font-size: var(--font-size-xs); text-transform: uppercase;">Grand Total Connections</div>
-                        <div style="color: white; font-size: var(--font-size-xl); font-weight: 700;">${grandTotalMin} - ${grandTotalMax}</div>
-                        <div style="color: rgba(255,255,255,0.6); font-size: var(--font-size-xs);">Min Pods x Pool Min — Max Pods x Pool Max</div>
+                    <div class="grand-total-section">
+                        <div class="grand-total-label">Grand Total</div>
+                        <div class="grand-total-value">${grandTotalMin} - ${grandTotalMax}</div>
+                        <div class="grand-total-desc">Connections across all schemas</div>
                     </div>
                 </div>
             `;
@@ -568,8 +640,8 @@
             return `
                 <div class="k8s-section-card">
                     <h3>
-                        <span>Kubernetes Deployments</span>
-                        <span class="deployment-count">${deployments.length} deployments | ${totalMinPods}-${totalMaxPods} pods</span>
+                        <span><span class="k8s-icon">☸️</span> Kubernetes Deployments</span>
+                        <span class="deployment-count">${deployments.length} deployments · ${totalMinPods}-${totalMaxPods} pods</span>
                     </h3>
                     <div class="k8s-deployments-container">
                         <div class="k8s-deployments-grid">
