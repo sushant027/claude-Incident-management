@@ -24,7 +24,7 @@ class Settings:
     
     # Google Gemini
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL = "gemini-pro"
+    GEMINI_MODEL = "gemini-1.5-flash"
     
     # Application
     APP_NAME = os.getenv("APP_NAME", "Enterprise Incident Management Platform")
